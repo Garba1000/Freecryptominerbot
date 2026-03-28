@@ -89,7 +89,6 @@ body {
     <p>💰 Balance: $<span id="balance">0.00</span></p>
   </div>
 
-  <!-- ✅ CLOUD MINING UI -->
   <div class="stats">
     <p>⚡ Status: <span id="miningStatus">Idle</span></p>
     <p>⛏️ Speed: <span id="miningSpeed">0.00</span> GH/s</p>
@@ -99,7 +98,6 @@ body {
   <button class="button" id="startMiningBtn">🚀 Start Mining</button>
   <button class="button" id="stopMiningBtn" style="display:none;">⛔ Stop Mining</button>
 
-  <button class="button" id="watchBtn">⛏️ Free Mining</button>
   <button class="button" id="taskBtn">✅ Task</button>
   <button class="button" id="withdrawBtn">💵 Withdraw</button>
   <button class="button" id="referralBtn">🔗 Copy Referral Link</button>
@@ -158,13 +156,35 @@ function joinChannelClicked(){
   document.getElementById("mainContainer").style.display="block";
 }
 
-/* FREE MINING BUTTON */
-document.getElementById("watchBtn").addEventListener("click", async () => {
-  try {
-    const ad = window.Adsgram.init({blockId: getRandomBlock()});
-    await ad.show();
-  } catch (e) {}
+/* START MINING -> TASK */
+document.getElementById("startMiningBtn").addEventListener("click", () => {
+  document.getElementById("taskSection").style.display = "block";
+
+  const randomTask = taskQueue[Math.floor(Math.random() * taskQueue.length)];
+  loadMiningTask(randomTask);
 });
+
+/* MINING TASK */
+function loadMiningTask(id){
+  const newTask = document.createElement("adsgram-task");
+  newTask.setAttribute("data-block-id", id);
+  newTask.id = "currentTask";
+
+  document.getElementById("currentTask").replaceWith(newTask);
+
+  newTask.addEventListener("reward", () => {
+    miningActive = true;
+    miningSpeed = 1;
+
+    startMining();
+    startSpeedDrain();
+    updateMiningUI();
+    saveMining();
+
+    document.getElementById("startMiningBtn").style.display = "none";
+    document.getElementById("taskSection").style.display = "none";
+  });
+}
 
 /* TASK SYSTEM */
 document.getElementById("taskBtn").addEventListener("click",()=>{
@@ -212,19 +232,13 @@ document.getElementById("referralBtn").addEventListener("click",()=>{
   alert("Copied!");
 });
 
-/* ===== CLOUD MINING SYSTEM ===== */
+/* CLOUD MINING SYSTEM */
 
 let miningActive = false;
 let miningSpeed = 0;
 let minedAmount = 0;
 let miningInterval = null;
-
-if(localStorage.getItem("mining_data")){
-  const data = JSON.parse(localStorage.getItem("mining_data"));
-  miningActive = data.active || false;
-  miningSpeed = data.speed || 0;
-  minedAmount = data.mined || 0;
-}
+let speedInterval = null;
 
 function updateMiningUI(){
   document.getElementById("miningStatus").textContent = miningActive ? "Active" : "Idle";
@@ -243,17 +257,10 @@ function saveMining(){
   }));
 }
 
-document.getElementById("startMiningBtn").addEventListener("click", () => {
-  miningActive = true;
-  miningSpeed = (Math.random() * 2 + 0.5);
-  startMining();
-  updateMiningUI();
-  saveMining();
-});
-
 document.getElementById("stopMiningBtn").addEventListener("click", () => {
   miningActive = false;
   clearInterval(miningInterval);
+  clearInterval(speedInterval);
   updateMiningUI();
   saveMining();
 });
@@ -262,7 +269,7 @@ function startMining(){
   clearInterval(miningInterval);
 
   miningInterval = setInterval(() => {
-    if(!miningActive) return;
+    if(!miningActive || miningSpeed <= 0) return;
 
     let earn = miningSpeed * 0.00001;
 
@@ -277,8 +284,39 @@ function startMining(){
   }, 3000);
 }
 
-if(miningActive){
-  startMining();
+/* SPEED DRAIN */
+function startSpeedDrain(){
+  clearInterval(speedInterval);
+
+  speedInterval = setInterval(async () => {
+    if(!miningActive) return;
+
+    miningSpeed -= 1;
+
+    if(miningSpeed <= 0){
+      miningSpeed = 0;
+      miningActive = false;
+
+      clearInterval(miningInterval);
+      clearInterval(speedInterval);
+
+      updateMiningUI();
+      saveMining();
+
+      // SHOW AD
+      try {
+        const ad = window.Adsgram.init({blockId: getRandomBlock()});
+        await ad.show();
+      } catch(e){}
+
+      // SHOW START BUTTON AGAIN
+      document.getElementById("startMiningBtn").style.display = "block";
+    }
+
+    updateMiningUI();
+    saveMining();
+
+  }, 30000);
 }
 
 updateMiningUI();
