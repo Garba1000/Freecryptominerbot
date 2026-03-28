@@ -69,7 +69,6 @@ body {
   font-weight:bold;
 }
 
-/* NEW POPUP */
 #miningPopup {
   position:fixed;
   top:0;
@@ -109,11 +108,9 @@ body {
     <p>💎 Mined: $<span id="minedAmount">0.0000</span></p>
   </div>
 
-  <!-- HIDDEN START BUTTON -->
   <button class="button" id="startMiningBtn" style="display:none;">🚀 Start Mining</button>
   <button class="button" id="stopMiningBtn" style="display:none;">⛔ Stop Mining</button>
 
-  <!-- NEW BUTTON -->
   <button class="button" id="miningNowBtn">⛏️ Mining Now</button>
 
   <button class="button" id="taskBtn">✅ Task</button>
@@ -126,7 +123,6 @@ body {
   </div>
 </div>
 
-<!-- POPUP -->
 <div id="miningPopup">
   <button class="button" id="popupStartMining">🚀 Start Mining</button>
 </div>
@@ -179,10 +175,22 @@ function joinChannelClicked(){
 }
 
 /* MINING NOW BUTTON */
+let firstMiningAdShown = false;
+
 document.getElementById("miningNowBtn").addEventListener("click", async () => {
   try {
-    const ad = window.Adsgram.init({blockId: getRandomBlock()});
+    let blockToShow;
+
+    if(!firstMiningAdShown){
+      blockToShow = "26146";
+      firstMiningAdShown = true;
+    } else {
+      blockToShow = getRandomBlock();
+    }
+
+    const ad = window.Adsgram.init({blockId: blockToShow});
     await ad.show();
+
   } catch(e){}
 
   document.getElementById("miningPopup").style.display = "flex";
@@ -219,7 +227,7 @@ function loadMiningTask(id){
   });
 }
 
-/* TASK SYSTEM */
+/* TASK BUTTON */
 document.getElementById("taskBtn").addEventListener("click",()=>{
   document.getElementById("taskSection").style.display="block";
 });
