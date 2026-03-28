@@ -68,6 +68,20 @@ body {
   color:#00ff00;
   font-weight:bold;
 }
+
+/* NEW POPUP */
+#miningPopup {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.8);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:99999;
+}
 </style>
 </head>
 
@@ -95,8 +109,12 @@ body {
     <p>💎 Mined: $<span id="minedAmount">0.0000</span></p>
   </div>
 
-  <button class="button" id="startMiningBtn">🚀 Start Mining</button>
+  <!-- HIDDEN START BUTTON -->
+  <button class="button" id="startMiningBtn" style="display:none;">🚀 Start Mining</button>
   <button class="button" id="stopMiningBtn" style="display:none;">⛔ Stop Mining</button>
+
+  <!-- NEW BUTTON -->
+  <button class="button" id="miningNowBtn">⛏️ Mining Now</button>
 
   <button class="button" id="taskBtn">✅ Task</button>
   <button class="button" id="withdrawBtn">💵 Withdraw</button>
@@ -106,6 +124,11 @@ body {
     <adsgram-task id="currentTask" data-block-id="task-25604"></adsgram-task>
     <div id="taskMessage">🎉 Task completed!</div>
   </div>
+</div>
+
+<!-- POPUP -->
+<div id="miningPopup">
+  <button class="button" id="popupStartMining">🚀 Start Mining</button>
 </div>
 
 <script>
@@ -123,7 +146,6 @@ let balance = localStorage.getItem(balanceKey) !== null
 let tasksCompleted=JSON.parse(localStorage.getItem(tasksKey))||{};
 
 const taskQueue=["task-26154","task-26155","task-26157","task-26159"];
-let taskIndex=0;
 
 const rewardBlocks = ["26146","26147","26148"];
 
@@ -156,8 +178,20 @@ function joinChannelClicked(){
   document.getElementById("mainContainer").style.display="block";
 }
 
-/* START MINING -> TASK */
-document.getElementById("startMiningBtn").addEventListener("click", () => {
+/* MINING NOW BUTTON */
+document.getElementById("miningNowBtn").addEventListener("click", async () => {
+  try {
+    const ad = window.Adsgram.init({blockId: getRandomBlock()});
+    await ad.show();
+  } catch(e){}
+
+  document.getElementById("miningPopup").style.display = "flex";
+});
+
+/* POPUP START */
+document.getElementById("popupStartMining").addEventListener("click", () => {
+  document.getElementById("miningPopup").style.display = "none";
+
   document.getElementById("taskSection").style.display = "block";
 
   const randomTask = taskQueue[Math.floor(Math.random() * taskQueue.length)];
@@ -181,7 +215,6 @@ function loadMiningTask(id){
     updateMiningUI();
     saveMining();
 
-    document.getElementById("startMiningBtn").style.display = "none";
     document.getElementById("taskSection").style.display = "none";
   });
 }
@@ -189,24 +222,7 @@ function loadMiningTask(id){
 /* TASK SYSTEM */
 document.getElementById("taskBtn").addEventListener("click",()=>{
   document.getElementById("taskSection").style.display="block";
-  loadTask(taskQueue[taskIndex]);
 });
-
-function loadTask(id){
-  const newTask=document.createElement("adsgram-task");
-  newTask.setAttribute("data-block-id",id);
-  newTask.id="currentTask";
-  document.getElementById("currentTask").replaceWith(newTask);
-
-  newTask.addEventListener("reward",()=>{
-    addReward(0.02);
-    tasksCompleted[id]=true;
-    localStorage.setItem(tasksKey,JSON.stringify(tasksCompleted));
-
-    taskIndex = (taskIndex + 1) % taskQueue.length;
-    loadTask(taskQueue[taskIndex]);
-  });
-}
 
 /* WITHDRAW */
 document.getElementById("withdrawBtn").addEventListener("click",()=>{
@@ -233,7 +249,6 @@ document.getElementById("referralBtn").addEventListener("click",()=>{
 });
 
 /* CLOUD MINING SYSTEM */
-
 let miningActive = false;
 let miningSpeed = 0;
 let minedAmount = 0;
@@ -245,7 +260,6 @@ function updateMiningUI(){
   document.getElementById("miningSpeed").textContent = miningSpeed.toFixed(2);
   document.getElementById("minedAmount").textContent = minedAmount.toFixed(4);
 
-  document.getElementById("startMiningBtn").style.display = miningActive ? "none" : "block";
   document.getElementById("stopMiningBtn").style.display = miningActive ? "block" : "none";
 }
 
@@ -284,7 +298,6 @@ function startMining(){
   }, 3000);
 }
 
-/* SPEED DRAIN */
 function startSpeedDrain(){
   clearInterval(speedInterval);
 
@@ -303,14 +316,12 @@ function startSpeedDrain(){
       updateMiningUI();
       saveMining();
 
-      // SHOW AD
       try {
         const ad = window.Adsgram.init({blockId: getRandomBlock()});
         await ad.show();
       } catch(e){}
 
-      // SHOW START BUTTON AGAIN
-      document.getElementById("startMiningBtn").style.display = "block";
+      document.getElementById("miningPopup").style.display = "flex";
     }
 
     updateMiningUI();
