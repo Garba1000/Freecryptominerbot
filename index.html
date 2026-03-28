@@ -127,7 +127,7 @@ let tasksCompleted=JSON.parse(localStorage.getItem(tasksKey))||{};
 const taskQueue=["task-25600","task-25601","task-25602","task-25603"];
 let taskIndex=0;
 
-const rewardBlocks = ["25599","25596","25598"];
+const rewardBlocks = ["26146","26147","26148"];
 
 function getRandomBlock(){
   return rewardBlocks[Math.floor(Math.random()*rewardBlocks.length)];
@@ -145,7 +145,7 @@ function addReward(amount){
 }
 
 /* JOIN POPUP */
-window.Adsgram.init({blockId:"25597"}).show().finally(()=>{
+window.Adsgram.init({blockId:"26145"}).show().finally(()=>{
   document.getElementById("joinPopup").style.display="flex";
 });
 
