@@ -41,12 +41,6 @@ body {
   border: none;
   font-size: 16px;
   cursor: pointer;
-  transition: 0.3s;
-}
-
-.button:hover{
-  transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(0,198,255,0.7);
 }
 
 .stats{
@@ -67,20 +61,12 @@ body {
   display: none;
   justify-content: center;
   align-items: center;
-  padding: 25px;
-}
-
-#popupBox {
-  background: #ffffff10;
-  padding: 30px 20px;
-  border-radius: 14px;
 }
 
 #taskMessage {
   display:none;
   color:#00ff00;
   font-weight:bold;
-  margin-top:10px;
 }
 </style>
 </head>
@@ -88,10 +74,10 @@ body {
 <body>
 
 <div id="joinPopup">
-  <div id="popupBox">
-    <h2>🚫 You must join our channel to continue</h2>
+  <div>
+    <h2>🚫 Join channel first</h2>
     <a href="https://t.me/earnzoners" target="_blank" onclick="joinChannelClicked()" class="button">
-       👉 Join Telegram Channel
+       👉 Join Channel
     </a>
   </div>
 </div>
@@ -103,15 +89,24 @@ body {
     <p>💰 Balance: $<span id="balance">0.00</span></p>
   </div>
 
+  <!-- ✅ CLOUD MINING UI -->
+  <div class="stats">
+    <p>⚡ Status: <span id="miningStatus">Idle</span></p>
+    <p>⛏️ Speed: <span id="miningSpeed">0.00</span> GH/s</p>
+    <p>💎 Mined: $<span id="minedAmount">0.0000</span></p>
+  </div>
+
+  <button class="button" id="startMiningBtn">🚀 Start Mining</button>
+  <button class="button" id="stopMiningBtn" style="display:none;">⛔ Stop Mining</button>
+
   <button class="button" id="watchBtn">⛏️ Free Mining</button>
   <button class="button" id="taskBtn">✅ Task</button>
   <button class="button" id="withdrawBtn">💵 Withdraw</button>
   <button class="button" id="referralBtn">🔗 Copy Referral Link</button>
 
   <div id="taskSection" style="display:none;">
-    <h3>Complete Task</h3>
     <adsgram-task id="currentTask" data-block-id="task-25604"></adsgram-task>
-    <div id="taskMessage">🎉 Social task completed successfully!</div>
+    <div id="taskMessage">🎉 Task completed!</div>
   </div>
 </div>
 
@@ -121,7 +116,6 @@ tg.expand();
 
 const balanceKey='user_balance';
 const tasksKey='tasks_completed';
-
 const ADMIN_ID=6910486529;
 
 let balance = localStorage.getItem(balanceKey) !== null 
@@ -133,7 +127,6 @@ let tasksCompleted=JSON.parse(localStorage.getItem(tasksKey))||{};
 const taskQueue=["task-25600","task-25601","task-25602","task-25603"];
 let taskIndex=0;
 
-/* RANDOM REWARD BLOCKS */
 const rewardBlocks = ["25599","25596","25598"];
 
 function getRandomBlock(){
@@ -151,7 +144,7 @@ function addReward(amount){
   updateUI();
 }
 
-/* INIT POPUP AD */
+/* JOIN POPUP */
 window.Adsgram.init({blockId:"25597"}).show().finally(()=>{
   document.getElementById("joinPopup").style.display="flex";
 });
@@ -161,62 +154,19 @@ function joinChannelClicked(){
     addReward(0.001);
     localStorage.setItem('joined_channel',"yes");
   }
-
   document.getElementById("joinPopup").style.display="none";
   document.getElementById("mainContainer").style.display="block";
 }
 
-/* ⚡ FREE MINING ENERGY BUTTON */
-const commentBtn = document.createElement("button");
-commentBtn.className = "button";
-commentBtn.id = "commentMenuBtn";
-commentBtn.textContent = "⚡ Free Mining Energy";
-commentBtn.style.display = "none";
-document.getElementById("mainContainer").appendChild(commentBtn);
-
-/* ⛏️ FREE MINING CLICK */
+/* FREE MINING BUTTON */
 document.getElementById("watchBtn").addEventListener("click", async () => {
   try {
     const ad = window.Adsgram.init({blockId: getRandomBlock()});
-    let res = await ad.show();
-    if (res.done) {
-      commentBtn.style.display = "block";
-    }
+    await ad.show();
   } catch (e) {}
 });
 
-/* ENERGY TASK */
-commentBtn.addEventListener("click", () => {
-  commentBtn.style.display = "none";
-
-  let availableTasks = taskQueue.filter(t => !tasksCompleted[t]);
-  if (availableTasks.length === 0) {
-    availableTasks = taskQueue.slice();
-    tasksCompleted = {};
-  }
-
-  let randomTaskId = availableTasks[Math.floor(Math.random() * availableTasks.length)];
-
-  const newTask = document.createElement("adsgram-task");
-  newTask.setAttribute("data-block-id", randomTaskId);
-  newTask.id = "commentTask";
-
-  const taskSection = document.getElementById("taskSection");
-  taskSection.style.display = "block";
-
-  const oldTask = document.getElementById("currentTask");
-  if (oldTask) oldTask.replaceWith(newTask);
-
-  newTask.addEventListener("reward", () => {
-    addReward(0.05);
-    tasksCompleted[randomTaskId] = true;
-    localStorage.setItem(tasksKey, JSON.stringify(tasksCompleted));
-    alert("⚡ Energy claimed! +$0.05");
-    taskSection.style.display = "none";
-  });
-});
-
-/* TASK SYSTEM (UNCHANGED) */
+/* TASK SYSTEM */
 document.getElementById("taskBtn").addEventListener("click",()=>{
   document.getElementById("taskSection").style.display="block";
   loadTask(taskQueue[taskIndex]);
@@ -233,15 +183,7 @@ function loadTask(id){
     tasksCompleted[id]=true;
     localStorage.setItem(tasksKey,JSON.stringify(tasksCompleted));
 
-    if(taskIndex<taskQueue.length-1){
-      taskIndex++;
-    }else{
-      taskIndex=0;
-      const msg=document.getElementById("taskMessage");
-      msg.style.display="block";
-      setTimeout(()=>{msg.style.display="none";},30000);
-    }
-
+    taskIndex = (taskIndex + 1) % taskQueue.length;
     loadTask(taskQueue[taskIndex]);
   });
 }
@@ -262,6 +204,84 @@ document.getElementById("withdrawBtn").addEventListener("click",()=>{
   localStorage.setItem(balanceKey, balance);
   updateUI();
 });
+
+/* REFERRAL */
+document.getElementById("referralBtn").addEventListener("click",()=>{
+  const link=`https://t.me/Postnewanbot?start=${tg.initDataUnsafe.user.id}`;
+  navigator.clipboard.writeText(link);
+  alert("Copied!");
+});
+
+/* ===== CLOUD MINING SYSTEM ===== */
+
+let miningActive = false;
+let miningSpeed = 0;
+let minedAmount = 0;
+let miningInterval = null;
+
+if(localStorage.getItem("mining_data")){
+  const data = JSON.parse(localStorage.getItem("mining_data"));
+  miningActive = data.active || false;
+  miningSpeed = data.speed || 0;
+  minedAmount = data.mined || 0;
+}
+
+function updateMiningUI(){
+  document.getElementById("miningStatus").textContent = miningActive ? "Active" : "Idle";
+  document.getElementById("miningSpeed").textContent = miningSpeed.toFixed(2);
+  document.getElementById("minedAmount").textContent = minedAmount.toFixed(4);
+
+  document.getElementById("startMiningBtn").style.display = miningActive ? "none" : "block";
+  document.getElementById("stopMiningBtn").style.display = miningActive ? "block" : "none";
+}
+
+function saveMining(){
+  localStorage.setItem("mining_data", JSON.stringify({
+    active: miningActive,
+    speed: miningSpeed,
+    mined: minedAmount
+  }));
+}
+
+document.getElementById("startMiningBtn").addEventListener("click", () => {
+  miningActive = true;
+  miningSpeed = (Math.random() * 2 + 0.5);
+  startMining();
+  updateMiningUI();
+  saveMining();
+});
+
+document.getElementById("stopMiningBtn").addEventListener("click", () => {
+  miningActive = false;
+  clearInterval(miningInterval);
+  updateMiningUI();
+  saveMining();
+});
+
+function startMining(){
+  clearInterval(miningInterval);
+
+  miningInterval = setInterval(() => {
+    if(!miningActive) return;
+
+    let earn = miningSpeed * 0.00001;
+
+    minedAmount += earn;
+    balance += earn;
+
+    localStorage.setItem("user_balance", balance);
+
+    updateUI();
+    updateMiningUI();
+    saveMining();
+  }, 3000);
+}
+
+if(miningActive){
+  startMining();
+}
+
+updateMiningUI();
 </script>
 
 </body>
