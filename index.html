@@ -133,16 +133,16 @@ tg.expand();
 
 const balanceKey='user_balance';
 const tasksKey='tasks_completed';
+const miningKey='mining_data';
 const ADMIN_ID=6910486529;
 
-let balance = localStorage.getItem(balanceKey) !== null 
-  ? parseFloat(localStorage.getItem(balanceKey)) 
-  : 0;
+/* SAFE BALANCE */
+let balance = parseFloat(localStorage.getItem(balanceKey));
+if(isNaN(balance)) balance = 0;
 
 let tasksCompleted=JSON.parse(localStorage.getItem(tasksKey))||{};
 
 const taskQueue=["task-26154","task-26155","task-26157","task-26159"];
-
 const rewardBlocks = ["26146","26147","26148"];
 
 function getRandomBlock(){
@@ -160,8 +160,20 @@ function addReward(amount){
   updateUI();
 }
 
-/* JOIN POPUP */
-window.Adsgram.init({blockId:"26145"}).show().finally(()=>{
+/* LOAD MINING DATA */
+let miningActive = false;
+let miningSpeed = 0;
+let minedAmount = 0;
+
+const savedMining = JSON.parse(localStorage.getItem(miningKey));
+if(savedMining){
+  miningActive = savedMining.active || false;
+  miningSpeed = savedMining.speed || 0;
+  minedAmount = savedMining.mined || 0;
+}
+
+/* RANDOM PRELOAD AD */
+window.Adsgram.init({blockId:getRandomBlock()}).show().finally(()=>{
   document.getElementById("joinPopup").style.display="flex";
 });
 
@@ -174,39 +186,27 @@ function joinChannelClicked(){
   document.getElementById("mainContainer").style.display="block";
 }
 
-/* MINING NOW BUTTON */
+/* MINING NOW */
 let firstMiningAdShown = false;
 
 document.getElementById("miningNowBtn").addEventListener("click", async () => {
   try {
-    let blockToShow;
-
-    if(!firstMiningAdShown){
-      blockToShow = "26146";
-      firstMiningAdShown = true;
-    } else {
-      blockToShow = getRandomBlock();
-    }
-
-    const ad = window.Adsgram.init({blockId: blockToShow});
+    const ad = window.Adsgram.init({blockId: getRandomBlock()});
     await ad.show();
-
   } catch(e){}
-
   document.getElementById("miningPopup").style.display = "flex";
 });
 
-/* POPUP START */
+/* POPUP */
 document.getElementById("popupStartMining").addEventListener("click", () => {
   document.getElementById("miningPopup").style.display = "none";
-
   document.getElementById("taskSection").style.display = "block";
 
   const randomTask = taskQueue[Math.floor(Math.random() * taskQueue.length)];
   loadMiningTask(randomTask);
 });
 
-/* MINING TASK */
+/* TASK */
 function loadMiningTask(id){
   const newTask = document.createElement("adsgram-task");
   newTask.setAttribute("data-block-id", id);
@@ -216,7 +216,7 @@ function loadMiningTask(id){
 
   newTask.addEventListener("reward", () => {
     miningActive = true;
-    miningSpeed += 1; // ✅ ADD SPEED
+    miningSpeed += 1;
 
     startMining();
     startSpeedDrain();
@@ -227,7 +227,6 @@ function loadMiningTask(id){
   });
 }
 
-/* TASK BUTTON */
 document.getElementById("taskBtn").addEventListener("click",()=>{
   document.getElementById("taskSection").style.display="block";
 });
@@ -256,10 +255,7 @@ document.getElementById("referralBtn").addEventListener("click",()=>{
   alert("Copied!");
 });
 
-/* CLOUD MINING SYSTEM */
-let miningActive = false;
-let miningSpeed = 0;
-let minedAmount = 0;
+/* MINING SYSTEM */
 let miningInterval = null;
 let speedInterval = null;
 
@@ -272,7 +268,7 @@ function updateMiningUI(){
 }
 
 function saveMining(){
-  localStorage.setItem("mining_data", JSON.stringify({
+  localStorage.setItem(miningKey, JSON.stringify({
     active: miningActive,
     speed: miningSpeed,
     mined: minedAmount
@@ -287,6 +283,12 @@ document.getElementById("stopMiningBtn").addEventListener("click", () => {
   saveMining();
 });
 
+/* AUTO RESUME */
+if(miningActive && miningSpeed > 0){
+  startMining();
+  startSpeedDrain();
+}
+
 function startMining(){
   clearInterval(miningInterval);
 
@@ -294,7 +296,6 @@ function startMining(){
     if(!miningActive || miningSpeed <= 0) return;
 
     minedAmount += 0.001;
-
     updateMiningUI();
     saveMining();
   }, 1000);
@@ -307,8 +308,8 @@ function startSpeedDrain(){
     if(!miningActive) return;
 
     if(miningSpeed > 0){
-      addReward(0.05); // ✅ ADD REWARD
-      miningSpeed -= 1; // ✅ DEDUCT SPEED
+      addReward(0.05);
+      miningSpeed -= 1;
     }
 
     if(miningSpeed <= 0){
