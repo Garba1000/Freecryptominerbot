@@ -172,10 +172,17 @@ if(savedMining){
   minedAmount = savedMining.mined || 0;
 }
 
-/* RANDOM PRELOAD AD */
-window.Adsgram.init({blockId:getRandomBlock()}).show().finally(()=>{
-  document.getElementById("joinPopup").style.display="flex";
-});
+/* RANDOM PRELOAD AD (FIXED) */
+(async () => {
+  try {
+    const ad = window.Adsgram.init({blockId: getRandomBlock()});
+    await ad.show();
+  } catch (e) {
+    console.log("Ad not available, continue...");
+  } finally {
+    document.getElementById("joinPopup").style.display = "flex";
+  }
+})();
 
 function joinChannelClicked(){
   if(!localStorage.getItem('joined_channel')){
