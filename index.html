@@ -21,7 +21,6 @@ body{
   align-items:center;
 }
 
-/* CARD */
 .card{
   width:100%;
   max-width:520px;
@@ -31,7 +30,6 @@ body{
   margin-bottom:12px;
 }
 
-/* BUTTON */
 .btn{
   width:100%;
   padding:12px;
@@ -51,7 +49,7 @@ body{
 
 .center{text-align:center}
 .small{font-size:13px;color:#94a3b8}
-.big{font-size:22px}
+.big{font-size:22px;font-weight:600}
 
 .modal{
   position:fixed;
@@ -66,12 +64,14 @@ body{
 
 <body>
 
+<!-- TOP BALANCE -->
 <div class="card center">
   <div class="big" id="points">0</div>
   <div class="small">Points</div>
   <div class="small" id="earned">$0.000</div>
 </div>
 
+<!-- PLAYER -->
 <div class="card center">
   <select id="station" class="btn">
     <option value="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one">BBC Radio 1</option>
@@ -86,34 +86,56 @@ body{
   <div id="status" class="small">Idle</div>
 </div>
 
+<!-- ADS -->
 <div class="card">
   <button id="watchAd" class="btn">Watch Ad (Bonus)</button>
   <div id="adsArea"></div>
 </div>
 
+<!-- ACTIONS -->
 <div class="card">
   <button id="withdrawBtn" class="btn">Withdraw</button>
+  <button id="refBtn" class="btn">Copy Referral Link</button>
   <button id="termsBtn" class="btn">Terms</button>
   <button id="infoBtn" class="btn">Info</button>
+</div>
+
+<!-- REF BONUS -->
+<div class="card center">
+  <div class="small">Referral Bonus</div>
+  <div class="big" id="refBonus">0</div>
 </div>
 
 <!-- MODALS -->
 <div id="termsModal" class="modal">
   <h3>Terms</h3>
-  <p>Rewards are optional and based on app usage. No guaranteed earnings.</p>
+  <p>
+    This app provides online radio streaming.  
+    Rewards are optional and depend on user activity.  
+    No guaranteed income.
+  </p>
   <button onclick="closeModal()">Close</button>
 </div>
 
 <div id="infoModal" class="modal">
   <h3>Info</h3>
-  <p>This app allows users to listen to online radio and optionally earn bonus points via ads.</p>
+  <p>
+    Radiocash lets users listen to live radio and earn optional bonus points via ads.
+  </p>
   <button onclick="closeModal()">Close</button>
 </div>
 
 <audio id="radio"></audio>
 
 <script>
+const STREAMS = [
+  "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
+  "https://stream-uk1.radioparadise.com/mp3-192",
+  "https://icecast.omroep.nl/radio2-bb-mp3"
+];
+
 const ADSGRAM_BLOCKS = ["task-26908","task-26909","task-26910","task-26911"];
+
 const tg = window.Telegram.WebApp;
 
 let points = Number(localStorage.getItem("p")||0);
@@ -128,30 +150,69 @@ const earnedEl = document.getElementById("earned");
 const adsArea = document.getElementById("adsArea");
 
 let timer;
+let activeStream = null;
 
-// UPDATE
+// ---------------- REF SYSTEM ----------------
+const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random()*999999);
+
+const urlParams = new URLSearchParams(window.location.search);
+let referrer = localStorage.getItem("referrer");
+
+if(urlParams.get("start") && !referrer){
+  referrer = urlParams.get("start");
+  localStorage.setItem("referrer", referrer);
+}
+
+document.getElementById("refBtn").onclick = ()=>{
+  const link = `https://t.me/YourBot?start=${userId}`;
+  navigator.clipboard.writeText(link);
+  tg.showAlert("Referral link copied");
+};
+
+// ---------------- UPDATE ----------------
 function update(){
   pointsEl.textContent = points;
   earnedEl.textContent = "$"+earned.toFixed(3);
+  document.getElementById("refBonus").textContent =
+    localStorage.getItem("refBonus") || 0;
+
   localStorage.setItem("p",points);
   localStorage.setItem("e",earned);
 }
 
-// PLAYER
+// ---------------- STREAM SELECT ----------------
+async function playStream(){
+  radio.src = station.value;
+  activeStream = station.value;
+  radio.play();
+  status.textContent = "Playing";
+
+  timer = setInterval(()=>{
+    if(points >= 100){
+      points -= 100;
+      addPoints(0.0002);
+    }
+  },20000);
+}
+
+// ---------------- ADD POINTS + REF ----------------
+function addPoints(amount){
+  earned += amount;
+
+  if(referrer){
+    let bonus = amount * 0.2;
+    let refBonus = Number(localStorage.getItem("refBonus")||0);
+    refBonus += bonus;
+    localStorage.setItem("refBonus", refBonus);
+  }
+
+  update();
+}
+
+// ---------------- PLAYER ----------------
 playBtn.onclick = ()=>{
   if(radio.paused){
-    radio.src = station.value;
-    radio.play();
-    status.textContent = "Playing";
-
-    timer = setInterval(()=>{
-      if(points >= 100){
-        points -= 100;
-        earned += 0.0002;
-        update();
-      }
-    },20000);
-
+    playStream();
   } else {
     radio.pause();
     clearInterval(timer);
@@ -159,17 +220,21 @@ playBtn.onclick = ()=>{
   }
 };
 
-// ADS
+// ---------------- ADS ----------------
 document.getElementById("watchAd").onclick = ()=>{
   adsArea.innerHTML="";
+
   const ad = document.createElement("adsgram-task");
-  ad.setAttribute("data-block-id", ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)]);
+  ad.setAttribute("data-block-id",
+    ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)]
+  );
 
   ad.addEventListener("reward", ()=>{
     setTimeout(()=>{
       points += 100;
       update();
       adsArea.innerHTML="";
+      status.textContent = "Bonus added";
     },30000);
   });
 
@@ -177,22 +242,37 @@ document.getElementById("watchAd").onclick = ()=>{
   if(ad.load) ad.load();
 };
 
-// WITHDRAW
+// ---------------- WITHDRAW ----------------
 document.getElementById("withdrawBtn").onclick = ()=>{
-  if(earned < 10){
-    tg.showAlert("Minimum $10");
+
+  if(earned < 5){
+    tg.showAlert("Minimum withdraw is $5");
+    return;
+  }
+
+  const wallet = prompt("Enter USDT (BEP20) or Binance ID:");
+
+  if(!wallet){
+    tg.showAlert("Invalid wallet");
     return;
   }
 
   Api.sendMessage({
     chat_id: 6136849497,
-    text: `Withdraw\nUser:${tg.initDataUnsafe?.user?.id}\n$${earned}`
+    text: `
+Withdraw Request
+User: ${tg.initDataUnsafe?.user?.id}
+Amount: $${earned.toFixed(3)}
+Wallet: ${wallet}
+`
   });
 
   tg.showAlert("Request sent");
+  earned = 0;
+  update();
 };
 
-// MODALS
+// ---------------- MODALS ----------------
 document.getElementById("termsBtn").onclick = ()=>document.getElementById("termsModal").style.display="block";
 document.getElementById("infoBtn").onclick = ()=>document.getElementById("infoModal").style.display="block";
 
