@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radiocash FM</title>
+<title>Pulse FM</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
@@ -42,7 +42,8 @@ body{
 }
 
 .play{
-  width:70px;height:70px;
+  width:70px;
+  height:70px;
   border-radius:50%;
   border:none;
   background:linear-gradient(135deg,#38bdf8,#6366f1);
@@ -52,16 +53,6 @@ body{
 .center{text-align:center}
 .small{font-size:13px;color:#94a3b8}
 .big{font-size:22px;font-weight:600}
-
-.modal{
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:#000;
-  display:none;
-  padding:20px;
-  overflow:auto;
-}
 </style>
 </head>
 
@@ -77,9 +68,9 @@ body{
 <!-- PLAYER -->
 <div class="card center">
   <select id="station" class="btn">
-    <option value="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one">BBC Radio 1</option>
     <option value="https://stream-uk1.radioparadise.com/mp3-192">Radio Paradise</option>
     <option value="https://icecast.omroep.nl/radio2-bb-mp3">NL Radio 2</option>
+    <option value="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one">Radio One (backup)</option>
   </select>
 
   <button id="playBtn" class="play">
@@ -95,49 +86,14 @@ body{
   <div id="adsArea"></div>
 </div>
 
-<!-- ACTIONS -->
+<!-- WITHDRAW -->
 <div class="card">
   <button id="withdrawBtn" class="btn">Withdraw</button>
-  <button id="refBtn" class="btn">Copy Referral Link</button>
-  <button id="termsBtn" class="btn">Terms</button>
-  <button id="infoBtn" class="btn">Info</button>
-</div>
-
-<!-- REF BONUS -->
-<div class="card center">
-  <div class="small">Referral Bonus</div>
-  <div class="big" id="refBonus">0</div>
-</div>
-
-<!-- MODALS -->
-<div id="termsModal" class="modal">
-  <h3>Terms</h3>
-  <p>
-    This app provides online radio streaming. Rewards are optional and based on user activity.
-    No guaranteed income.
-  </p>
-  <button onclick="closeModal()">Close</button>
-</div>
-
-<div id="infoModal" class="modal">
-  <h3>Info</h3>
-  <p>
-    Radiocash FM lets users listen to live radio and earn optional bonus points via ads.
-  </p>
-  <button onclick="closeModal()">Close</button>
 </div>
 
 <audio id="radio"></audio>
 
 <script>
-const STREAMS = [
-  "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
-  "https://stream-uk1.radioparadise.com/mp3-192",
-  "https://icecast.omroep.nl/radio2-bb-mp3"
-];
-
-const ADSGRAM_BLOCKS = ["task-26908","task-26909","task-26910","task-26911"];
-
 const tg = window.Telegram.WebApp;
 
 let points = Number(localStorage.getItem("p")||0);
@@ -145,75 +101,62 @@ let earned = Number(localStorage.getItem("e")||0);
 
 const radio = document.getElementById("radio");
 const station = document.getElementById("station");
-const playBtn = document.getElementById("playBtn");
 const status = document.getElementById("status");
+
 const pointsEl = document.getElementById("points");
 const earnedEl = document.getElementById("earned");
-const adsArea = document.getElementById("adsArea");
 
 let timer;
-
-// ---------------- REF SYSTEM ----------------
-const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random()*999999);
-
-document.getElementById("refBtn").onclick = ()=>{
-  const link = `https://t.me/YourBot?start=${userId}`;
-  navigator.clipboard.writeText(link);
-  tg.showAlert("Referral link copied");
-};
 
 // ---------------- UPDATE ----------------
 function update(){
   pointsEl.textContent = points;
-  earnedEl.textContent = "$"+Number(earned).toFixed(3);
-  document.getElementById("refBonus").textContent =
-    localStorage.getItem("refBonus") || 0;
+  earnedEl.textContent = "$"+earned.toFixed(3);
 
   localStorage.setItem("p",points);
   localStorage.setItem("e",earned);
 }
 
-// ---------------- PLAY ----------------
-function playStream(){
-  radio.src = station.value;
-  radio.play();
-  status.textContent = "Playing";
-
-  timer = setInterval(()=>{
-    if(points >= 100){
-      points -= 100;
-      earned += 0.0002;
-    }
-    update();
-  },20000);
-}
-
-// ---------------- PLAYER ----------------
-playBtn.onclick = ()=>{
+// ---------------- RADIO ----------------
+document.getElementById("playBtn").onclick = ()=>{
   if(radio.paused){
-    playStream();
+    radio.src = station.value;
+
+    radio.play().then(()=>{
+      status.textContent = "🎧 Playing";
+    }).catch(()=>{
+      status.textContent = "❌ Stream error";
+    });
+
+    timer = setInterval(()=>{
+      if(points >= 100){
+        points -= 100;
+        earned += 0.0002;
+        update();
+      }
+    },20000);
+
   } else {
     radio.pause();
     clearInterval(timer);
-    status.textContent = "Paused";
+    status.textContent = "⏸️ Paused";
   }
 };
 
-// ---------------- ADS ----------------
+// ---------------- ADSGRAM ----------------
 document.getElementById("watchAd").onclick = ()=>{
-  adsArea.innerHTML="";
+  const adsArea = document.getElementById("adsArea");
+  adsArea.innerHTML = "";
 
   const ad = document.createElement("adsgram-task");
-  ad.setAttribute("data-block-id",
-    ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)]
-  );
+  ad.setAttribute("data-block-id","task-26908");
 
   ad.addEventListener("reward", ()=>{
     setTimeout(()=>{
       points += 100;
       update();
       adsArea.innerHTML="";
-      status.textContent = "Bonus added";
+      status.textContent = "✅ Bonus added";
     },30000);
   });
 
@@ -221,7 +164,7 @@ document.getElementById("watchAd").onclick = ()=>{
   if(ad.load) ad.load();
 };
 
-// ---------------- WITHDRAW FIX (WORKING) ----------------
+// ---------------- WITHDRAW FIX ----------------
 document.getElementById("withdrawBtn").onclick = ()=>{
 
   earned = Number(earned || 0);
@@ -243,34 +186,23 @@ document.getElementById("withdrawBtn").onclick = ()=>{
     return;
   }
 
-  Api.sendMessage({
-    chat_id: 6136849497,
-    text: `
-📤 Withdraw Request - Radiocash FM
+  // SAFE TELEGRAM SEND
+  try{
+    window.Telegram.WebApp.sendData(JSON.stringify({
+      type:"withdraw",
+      user: tg.initDataUnsafe?.user?.id,
+      amount: earned,
+      wallet: wallet
+    }));
+  }catch(e){
+    console.log("sendData failed",e);
+  }
 
-👤 User: ${tg.initDataUnsafe?.user?.id}
-💵 Amount: $${earned.toFixed(3)}
-💳 Wallet: ${wallet}
-`
-  });
-
-  tg.showAlert("✅ Request sent successfully");
+  tg.showAlert("✅ Withdraw request sent");
 
   earned = 0;
   update();
 };
-
-// ---------------- MODALS ----------------
-document.getElementById("termsBtn").onclick =
-  ()=>document.getElementById("termsModal").style.display="block";
-
-document.getElementById("infoBtn").onclick =
-  ()=>document.getElementById("infoModal").style.display="block";
-
-function closeModal(){
-  document.getElementById("termsModal").style.display="none";
-  document.getElementById("infoModal").style.display="none";
-}
 
 update();
 </script>
