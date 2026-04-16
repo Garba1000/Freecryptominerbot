@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radiocash Player</title>
+<title>Radiocash FM</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
@@ -42,9 +42,11 @@ body{
 }
 
 .play{
-  width:70px;height:70px;border-radius:50%;
-  font-size:24px;border:none;
+  width:70px;height:70px;
+  border-radius:50%;
+  border:none;
   background:linear-gradient(135deg,#38bdf8,#6366f1);
+  font-size:24px;
 }
 
 .center{text-align:center}
@@ -53,7 +55,8 @@ body{
 
 .modal{
   position:fixed;
-  top:0;left:0;width:100%;height:100%;
+  top:0;left:0;
+  width:100%;height:100%;
   background:#000;
   display:none;
   padding:20px;
@@ -64,7 +67,7 @@ body{
 
 <body>
 
-<!-- TOP BALANCE -->
+<!-- BALANCE -->
 <div class="card center">
   <div class="big" id="points">0</div>
   <div class="small">Points</div>
@@ -110,8 +113,7 @@ body{
 <div id="termsModal" class="modal">
   <h3>Terms</h3>
   <p>
-    This app provides online radio streaming.  
-    Rewards are optional and depend on user activity.  
+    This app provides online radio streaming. Rewards are optional and based on activity.
     No guaranteed income.
   </p>
   <button onclick="closeModal()">Close</button>
@@ -120,7 +122,7 @@ body{
 <div id="infoModal" class="modal">
   <h3>Info</h3>
   <p>
-    Radiocash lets users listen to live radio and earn optional bonus points via ads.
+    Radiocash FM lets users listen to live radio and earn optional bonus points via ads.
   </p>
   <button onclick="closeModal()">Close</button>
 </div>
@@ -150,7 +152,6 @@ const earnedEl = document.getElementById("earned");
 const adsArea = document.getElementById("adsArea");
 
 let timer;
-let activeStream = null;
 
 // ---------------- REF SYSTEM ----------------
 const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random()*999999);
@@ -180,10 +181,9 @@ function update(){
   localStorage.setItem("e",earned);
 }
 
-// ---------------- STREAM SELECT ----------------
-async function playStream(){
+// ---------------- PLAY ----------------
+function playStream(){
   radio.src = station.value;
-  activeStream = station.value;
   radio.play();
   status.textContent = "Playing";
 
@@ -192,6 +192,7 @@ async function playStream(){
       points -= 100;
       addPoints(0.0002);
     }
+    update();
   },20000);
 }
 
@@ -205,8 +206,6 @@ function addPoints(amount){
     refBonus += bonus;
     localStorage.setItem("refBonus", refBonus);
   }
-
-  update();
 }
 
 // ---------------- PLAYER ----------------
@@ -242,39 +241,43 @@ document.getElementById("watchAd").onclick = ()=>{
   if(ad.load) ad.load();
 };
 
-// ---------------- WITHDRAW ----------------
+// ---------------- WITHDRAW FIX ----------------
 document.getElementById("withdrawBtn").onclick = ()=>{
 
   if(earned < 5){
-    tg.showAlert("Minimum withdraw is $5");
+    tg.showAlert("❌ Insufficient funds. Minimum withdrawal is $5");
     return;
   }
 
   const wallet = prompt("Enter USDT (BEP20) or Binance ID:");
 
-  if(!wallet){
-    tg.showAlert("Invalid wallet");
+  if(!wallet || wallet.length < 5){
+    tg.showAlert("❌ Invalid wallet");
     return;
   }
 
   Api.sendMessage({
     chat_id: 6136849497,
     text: `
-Withdraw Request
-User: ${tg.initDataUnsafe?.user?.id}
-Amount: $${earned.toFixed(3)}
-Wallet: ${wallet}
+📤 Withdraw Request - Radiocash FM
+👤 User: ${tg.initDataUnsafe?.user?.id}
+💵 Amount: $${earned.toFixed(3)}
+💳 Wallet: ${wallet}
 `
   });
 
-  tg.showAlert("Request sent");
+  tg.showAlert("✅ Request sent");
+
   earned = 0;
   update();
 };
 
 // ---------------- MODALS ----------------
-document.getElementById("termsBtn").onclick = ()=>document.getElementById("termsModal").style.display="block";
-document.getElementById("infoBtn").onclick = ()=>document.getElementById("infoModal").style.display="block";
+document.getElementById("termsBtn").onclick =
+  ()=>document.getElementById("termsModal").style.display="block";
+
+document.getElementById("infoBtn").onclick =
+  ()=>document.getElementById("infoModal").style.display="block";
 
 function closeModal(){
   document.getElementById("termsModal").style.display="none";
