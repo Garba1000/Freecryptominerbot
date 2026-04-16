@@ -113,7 +113,7 @@ body{
 <div id="termsModal" class="modal">
   <h3>Terms</h3>
   <p>
-    This app provides online radio streaming. Rewards are optional and based on activity.
+    This app provides online radio streaming. Rewards are optional and based on user activity.
     No guaranteed income.
   </p>
   <button onclick="closeModal()">Close</button>
@@ -156,14 +156,6 @@ let timer;
 // ---------------- REF SYSTEM ----------------
 const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random()*999999);
 
-const urlParams = new URLSearchParams(window.location.search);
-let referrer = localStorage.getItem("referrer");
-
-if(urlParams.get("start") && !referrer){
-  referrer = urlParams.get("start");
-  localStorage.setItem("referrer", referrer);
-}
-
 document.getElementById("refBtn").onclick = ()=>{
   const link = `https://t.me/YourBot?start=${userId}`;
   navigator.clipboard.writeText(link);
@@ -173,7 +165,7 @@ document.getElementById("refBtn").onclick = ()=>{
 // ---------------- UPDATE ----------------
 function update(){
   pointsEl.textContent = points;
-  earnedEl.textContent = "$"+earned.toFixed(3);
+  earnedEl.textContent = "$"+Number(earned).toFixed(3);
   document.getElementById("refBonus").textContent =
     localStorage.getItem("refBonus") || 0;
 
@@ -190,22 +182,10 @@ function playStream(){
   timer = setInterval(()=>{
     if(points >= 100){
       points -= 100;
-      addPoints(0.0002);
+      earned += 0.0002;
     }
     update();
   },20000);
-}
-
-// ---------------- ADD POINTS + REF ----------------
-function addPoints(amount){
-  earned += amount;
-
-  if(referrer){
-    let bonus = amount * 0.2;
-    let refBonus = Number(localStorage.getItem("refBonus")||0);
-    refBonus += bonus;
-    localStorage.setItem("refBonus", refBonus);
-  }
 }
 
 // ---------------- PLAYER ----------------
@@ -241,8 +221,10 @@ document.getElementById("watchAd").onclick = ()=>{
   if(ad.load) ad.load();
 };
 
-// ---------------- WITHDRAW FIX ----------------
+// ---------------- WITHDRAW FIX (WORKING) ----------------
 document.getElementById("withdrawBtn").onclick = ()=>{
+
+  earned = Number(earned || 0);
 
   if(earned < 5){
     tg.showAlert("❌ Insufficient funds. Minimum withdrawal is $5");
@@ -251,8 +233,13 @@ document.getElementById("withdrawBtn").onclick = ()=>{
 
   const wallet = prompt("Enter USDT (BEP20) or Binance ID:");
 
-  if(!wallet || wallet.length < 5){
-    tg.showAlert("❌ Invalid wallet");
+  if(!wallet){
+    tg.showAlert("❌ Withdrawal cancelled");
+    return;
+  }
+
+  if(wallet.length < 5){
+    tg.showAlert("❌ Invalid wallet address");
     return;
   }
 
@@ -260,13 +247,14 @@ document.getElementById("withdrawBtn").onclick = ()=>{
     chat_id: 6136849497,
     text: `
 📤 Withdraw Request - Radiocash FM
+
 👤 User: ${tg.initDataUnsafe?.user?.id}
 💵 Amount: $${earned.toFixed(3)}
 💳 Wallet: ${wallet}
 `
   });
 
-  tg.showAlert("✅ Request sent");
+  tg.showAlert("✅ Request sent successfully");
 
   earned = 0;
   update();
