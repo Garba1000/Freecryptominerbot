@@ -103,7 +103,6 @@ body{
 
 <div id="toast"></div>
 
-<!-- JOIN POPUP -->
 <div id="joinPopup" style="display:none;">
   <div>🚫 You must join our channel to continue</div>
   <a href="https://t.me/Konnetearnchannel" target="_blank" onclick="joinChannelClicked()">👉 Join Channel</a>
@@ -124,7 +123,10 @@ body{
     <option value="https://icecast.omroep.nl/radio2-bb-mp3">NL Radio 2</option>
   </select>
 
-  <button id="playBtn" class="play">▶</button>
+  <button id="playBtn" class="play">
+    <i class="fa fa-play"></i>
+  </button>
+
   <div id="status" class="small">Idle</div>
 </div>
 
@@ -139,6 +141,11 @@ body{
   <button id="refBtn" class="btn">Copy Referral Link</button>
   <button id="termsBtn" class="btn">Terms</button>
   <button id="infoBtn" class="btn">Info</button>
+</div>
+
+<div class="card center">
+  <div class="small">Referral Bonus</div>
+  <div class="big" id="refBonus">0</div>
 </div>
 
 </div>
@@ -161,6 +168,16 @@ body{
 const tg = window.Telegram.WebApp;
 tg.expand();
 
+// Adsgram
+const RewardAd = window.Adsgram.init({ blockId: "27928" });
+
+RewardAd.show().then(()=>{
+  document.getElementById("joinPopup").style.display="flex";
+}).catch(()=>{
+  document.getElementById("joinPopup").style.display="flex";
+});
+
+// ---------------- DATA ----------------
 let points = Number(localStorage.getItem("p")||0);
 let earned = Number(localStorage.getItem("e")||0);
 
@@ -168,14 +185,16 @@ const radio = document.getElementById("radio");
 const station = document.getElementById("station");
 const playBtn = document.getElementById("playBtn");
 const status = document.getElementById("status");
+const pointsEl = document.getElementById("points");
+const earnedEl = document.getElementById("earned");
 const adsArea = document.getElementById("adsArea");
 
 const ADSGRAM_BLOCKS = ["task-27929","task-27930","task-27931","task-27929"];
 const WELCOME_BLOCKS = ["27928","28010"];
 
 function update(){
-  document.getElementById("points").textContent = points;
-  document.getElementById("earned").textContent = "$"+Number(earned).toFixed(3);
+  pointsEl.textContent = points;
+  earnedEl.textContent = "$"+Number(earned).toFixed(3);
   localStorage.setItem("p",points);
   localStorage.setItem("e",earned);
 }
@@ -187,37 +206,39 @@ function showToast(msg){
   setTimeout(()=>t.style.display="none",3000);
 }
 
-// JOIN
+// ---------------- JOIN ----------------
 function joinChannelClicked(){
   points += 50;
-  localStorage.setItem("p", points);
+  update();
+
   document.getElementById("joinPopup").style.display="none";
   document.getElementById("mainApp").style.display="flex";
-  update();
 }
 
-// ✅ FIXED WATCH AD (TASK-BLOCK PROPERLY)
-document.getElementById("watchAd").onclick = ()=>{
-
-  adsArea.innerHTML = "";
-
+// ---------------- ADS ----------------
+document.getElementById("watchAd").onclick = async ()=>{
+  adsArea.innerHTML="";
   const blockId = ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)];
 
-  const task = document.createElement("adsgram-task");
-  task.setAttribute("data-block-id", blockId);
+  try {
+    const ad = Adsgram.init({ blockId, type:"task" });
 
-  adsArea.appendChild(task);
+    const res = await ad.show();
 
-  task.addEventListener("reward", ()=>{
-    points += 100;
-    update();
-    showToast("✅ +100 points earned");
-    adsArea.innerHTML = "";
-  }, { once:true });
+    if(res){
+      setTimeout(()=>{
+        points += 100;
+        update();
+        adsArea.innerHTML="";
+      },30000);
+    }
 
+  } catch(e){
+    showToast("Ad failed");
+  }
 };
 
-// WELCOME BONUS (UNCHANGED LOGIC)
+// ---------------- WELCOME BONUS ----------------
 document.getElementById("welcomeBonusBtn").onclick = async ()=>{
 
   const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
@@ -228,7 +249,6 @@ document.getElementById("welcomeBonusBtn").onclick = async ()=>{
     const res = await ad.show();
 
     if(res && res.done){
-
       adsArea.innerHTML="";
 
       const btn = document.createElement("button");
@@ -238,7 +258,7 @@ document.getElementById("welcomeBonusBtn").onclick = async ()=>{
       btn.onclick = ()=>{
         points += 1000;
         update();
-        showToast("🎉 You successfully received 1000 points welcome bonus");
+        showToast("🎉 1000 points added");
         btn.remove();
       };
 
@@ -250,18 +270,43 @@ document.getElementById("welcomeBonusBtn").onclick = async ()=>{
   }
 };
 
-// PLAYER
+// ---------------- 🔥 CONVERSION SYSTEM FIX ----------------
+let convertInterval = null;
+
+function startConversion(){
+  if(convertInterval) return;
+
+  convertInterval = setInterval(()=>{
+    if(!radio.paused){
+      if(points >= 100){
+        points -= 100;
+        earned += 0.0002;
+        update();
+      }
+    }
+  },30000);
+}
+
+function stopConversion(){
+  clearInterval(convertInterval);
+  convertInterval = null;
+}
+
+// ---------------- PLAYER ----------------
 playBtn.onclick = ()=>{
   if(radio.paused){
     radio.src = station.value;
     radio.play();
     status.textContent="Playing";
+    startConversion();
   } else {
     radio.pause();
     status.textContent="Paused";
+    stopConversion();
   }
 };
 
+// ---------------- UI ----------------
 document.getElementById("withdrawBtn").onclick = ()=>tg.showAlert("Withdraw system");
 document.getElementById("termsBtn").onclick = ()=>document.getElementById("termsModal").style.display="block";
 document.getElementById("infoBtn").onclick = ()=>document.getElementById("infoModal").style.display="block";
