@@ -86,10 +86,23 @@ body{
   margin-top:20px;
   font-weight:bold;
 }
+
+#toast{
+  position:fixed;
+  bottom:20px;
+  background:#22c55e;
+  color:#000;
+  padding:12px 16px;
+  border-radius:10px;
+  display:none;
+  z-index:99999;
+}
 </style>
 </head>
 
 <body>
+
+<div id="toast"></div>
 
 <!-- JOIN POPUP -->
 <div id="joinPopup" style="display:none;">
@@ -125,6 +138,7 @@ body{
 <!-- ADS -->
 <div class="card">
   <button id="watchAd" class="btn">Watch Ad (Bonus)</button>
+  <button id="welcomeBonusBtn" class="btn">🎁 Welcome Bonus</button>
   <div id="adsArea"></div>
 </div>
 
@@ -136,7 +150,7 @@ body{
   <button id="infoBtn" class="btn">Info</button>
 </div>
 
-<!-- REF BONUS -->
+<!-- REF -->
 <div class="card center">
   <div class="small">Referral Bonus</div>
   <div class="big" id="refBonus">0</div>
@@ -147,13 +161,13 @@ body{
 <!-- MODALS -->
 <div id="termsModal" class="modal">
   <h3>Terms</h3>
-  <p>This app provides online radio streaming. Rewards are optional and based on user activity.</p>
+  <p>This app provides online radio streaming. Rewards are optional.</p>
   <button onclick="closeModal()">Close</button>
 </div>
 
 <div id="infoModal" class="modal">
   <h3>Info</h3>
-  <p>Radiocash FM lets users listen to live radio and earn optional bonus points via ads.</p>
+  <p>Radiocash FM lets users earn points via ads and listening.</p>
   <button onclick="closeModal()">Close</button>
 </div>
 
@@ -163,35 +177,15 @@ body{
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// ---------------- PRELOAD REWARD AD ----------------
 const RewardAd = window.Adsgram.init({ blockId: "26637" });
 
 RewardAd.show().then(res=>{
-  if(res.done){
-    let earned = Number(localStorage.getItem("e")||0);
-    earned += 0.01;
-    localStorage.setItem("e", earned);
-  }
   document.getElementById("joinPopup").style.display="flex";
 }).catch(()=>{
   document.getElementById("joinPopup").style.display="flex";
 });
 
-// ---------------- JOIN CLICK ----------------
-function joinChannelClicked(){
-  if(!localStorage.getItem("joinedRewardGiven")){
-    let points = Number(localStorage.getItem("p")||0);
-    points += 50;
-    localStorage.setItem("p", points);
-    localStorage.setItem("joinedRewardGiven","yes");
-    alert("🎉 Joined! +50 points");
-  }
-
-  document.getElementById("joinPopup").style.display="none";
-  document.getElementById("mainApp").style.display="flex";
-}
-
-// ---------------- ORIGINAL SCRIPT ----------------
+// ---------------- DATA ----------------
 let points = Number(localStorage.getItem("p")||0);
 let earned = Number(localStorage.getItem("e")||0);
 
@@ -203,109 +197,105 @@ const pointsEl = document.getElementById("points");
 const earnedEl = document.getElementById("earned");
 const adsArea = document.getElementById("adsArea");
 
-let timer;
-
 const ADSGRAM_BLOCKS = ["task-27929","task-27930","task-27931","task-27929"];
+const WELCOME_BLOCKS = ["23486","3467"];
 
-const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random()*999999);
-
-document.getElementById("refBtn").onclick = ()=>{
-  const link = `https://t.me/SurvverBot?start=${userId}`;
-  navigator.clipboard.writeText(link);
-  tg.showAlert("Referral link copied");
-};
+let timer;
 
 function update(){
   pointsEl.textContent = points;
   earnedEl.textContent = "$"+Number(earned).toFixed(3);
-  document.getElementById("refBonus").textContent =
-    localStorage.getItem("refBonus") || 0;
-
   localStorage.setItem("p",points);
   localStorage.setItem("e",earned);
 }
 
-function playStream(){
-  radio.src = station.value;
-  radio.play();
-  status.textContent = "Playing";
-
-  timer = setInterval(()=>{
-    if(points >= 100){
-      points -= 100;
-      earned += 0.0002;
-    }
-    update();
-  },20000);
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(()=>t.style.display="none",30000);
 }
 
-playBtn.onclick = ()=>{
-  if(radio.paused){
-    playStream();
-  } else {
-    radio.pause();
-    clearInterval(timer);
-    status.textContent = "Paused";
-  }
-};
+// ---------------- JOIN ----------------
+function joinChannelClicked(){
+  let points = Number(localStorage.getItem("p")||0);
+  points += 50;
+  localStorage.setItem("p", points);
 
+  document.getElementById("joinPopup").style.display="none";
+  document.getElementById("mainApp").style.display="flex";
+}
+
+// ---------------- WATCH AD ----------------
 document.getElementById("watchAd").onclick = ()=>{
   adsArea.innerHTML="";
+  const blockId = ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)];
+  const ad = Adsgram.init({ blockId });
 
-  const ad = document.createElement("adsgram-task");
-  ad.setAttribute("data-block-id",
-    ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)]
-  );
+  ad.show().then(res=>{
+    if(res.done){
+      setTimeout(()=>{
+        points += 100;
+        update();
+        adsArea.innerHTML="";
+      },30000);
+    }
+  });
+};
 
-  ad.addEventListener("reward", ()=>{
-    setTimeout(()=>{
-      points += 100;
-      update();
+// ---------------- WELCOME BONUS ----------------
+document.getElementById("welcomeBonusBtn").onclick = async ()=>{
+
+  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
+
+  try {
+    const ad = Adsgram.init({ blockId });
+
+    const res = await ad.show();
+
+    if(res && res.done){
+
       adsArea.innerHTML="";
-      status.textContent = "Bonus added";
-    },30000);
-  });
 
-  adsArea.appendChild(ad);
-  if(ad.load) ad.load();
+      const btn = document.createElement("button");
+      btn.className="btn";
+      btn.innerText="🎁 Claim Bonus";
+
+      btn.onclick = ()=>{
+        points += 1000;
+        update();
+        showToast("🎉 You successfully received 1000 points welcome bonus");
+        btn.remove();
+      };
+
+      adsArea.appendChild(btn);
+    }
+
+  } catch(e){
+    tg.showAlert("Ad failed");
+  }
 };
 
-document.getElementById("withdrawBtn").onclick = ()=>{
-
-  earned = Number(earned || 0);
-
-  if(earned < 5){
-    tg.showAlert("❌ Minimum withdrawal is $5");
-    return;
+// ---------------- PLAYER ----------------
+playBtn.onclick = ()=>{
+  if(radio.paused){
+    radio.src = station.value;
+    radio.play();
+    status.textContent="Playing";
+  } else {
+    radio.pause();
+    status.textContent="Paused";
   }
-
-  const wallet = prompt("Enter USDT (BEP20) or Binance ID:");
-  if(!wallet || wallet.length < 5){
-    tg.showAlert("❌ Invalid wallet");
-    return;
-  }
-
-  Api.sendMessage({
-    chat_id: 6136849497,
-    text: `
-📤 Withdraw Request - Radiocash FM
-
-👤 User: ${tg.initDataUnsafe?.user?.id}
-💵 Amount: $${earned.toFixed(3)}
-💳 Wallet: ${wallet}
-`
-  });
-
-  tg.showAlert("✅ Request sent");
-  earned = 0;
-  update();
 };
+
+// ---------------- UI ----------------
+document.getElementById("withdrawBtn").onclick = ()=>tg.showAlert("Withdraw system");
 
 document.getElementById("termsBtn").onclick =
-  ()=>document.getElementById("termsModal").style.display="block";
+()=>document.getElementById("termsModal").style.display="block";
 
 document.getElementById("infoBtn").onclick =
-  ()=>document.getElementById("infoModal").style.display="block";
+()=>document.getElementById("infoModal").style.display="block";
 
 function closeModal(){
   document.getElementById("termsModal").style.display="none";
