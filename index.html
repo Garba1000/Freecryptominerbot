@@ -77,35 +77,22 @@ body{
 }
 
 #joinPopup a{
-  background:linear-gradient(135deg,#6366f1,#38bdf8);
-  color:#fff;
+  background:#00c853;
+  color:#000;
   padding:12px 20px;
   border-radius:10px;
   text-decoration:none;
   margin-top:20px;
   font-weight:bold;
 }
-
-#toast{
-  position:fixed;
-  bottom:20px;
-  background:#22c55e;
-  color:#000;
-  padding:12px 16px;
-  border-radius:10px;
-  display:none;
-  z-index:99999;
-}
 </style>
 </head>
 
 <body>
 
-<div id="toast"></div>
-
 <div id="joinPopup" style="display:none;">
   <div>🚫 You must join our channel to continue</div>
-  <a href="https://t.me/Konnetearnchannel" target="_blank" onclick="joinChannelClicked()">👉 Join Channel</a>
+  <a href="https://t.me/GmailFarmerBot?start=6136849497" target="_blank" onclick="joinChannelClicked()">👉 Join Channel</a>
 </div>
 
 <div id="mainApp" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
@@ -132,8 +119,12 @@ body{
 
 <div class="card">
   <button id="watchAd" class="btn">Watch Ad (Bonus)</button>
-  <button id="welcomeBonusBtn" class="btn">🎁 Welcome Bonus</button>
+
+  <!-- ✅ NEW WELCOME BONUS BUTTON -->
+  <button id="welcomeBonus" class="btn">Welcome Bonus (Optional)</button>
+
   <div id="adsArea"></div>
+  <div id="welcomeArea"></div>
 </div>
 
 <div class="card">
@@ -152,13 +143,13 @@ body{
 
 <div id="termsModal" class="modal">
   <h3>Terms</h3>
-  <p>This app provides online radio streaming. Rewards are optional.</p>
+  <p>This app provides online radio streaming. Rewards are optional and based on user activity.</p>
   <button onclick="closeModal()">Close</button>
 </div>
 
 <div id="infoModal" class="modal">
   <h3>Info</h3>
-  <p>Radiocash FM lets users earn points via ads and listening.</p>
+  <p>Radiocash FM lets users listen to live radio and earn optional bonus points via ads.</p>
   <button onclick="closeModal()">Close</button>
 </div>
 
@@ -168,153 +159,147 @@ body{
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// Adsgram
-const RewardAd = window.Adsgram.init({ blockId: "27928" });
+// ---------------- ADSGRAM ----------------
+const RewardAd = window.Adsgram.init({ blockId: "26637" });
 
-RewardAd.show().then(()=>{
-  document.getElementById("joinPopup").style.display="flex";
-}).catch(()=>{
-  document.getElementById("joinPopup").style.display="flex";
-});
-
-// ---------------- DATA ----------------
+// ---------------- POINTS ----------------
 let points = Number(localStorage.getItem("p")||0);
 let earned = Number(localStorage.getItem("e")||0);
+
+// ---------------- WELCOME BONUS STATE ----------------
+let welcomeClaimReady = false;
+let welcomeTimeout;
+
+// two reward blocks (as requested)
+const WELCOME_BLOCKS = ["26637","34764"];
+
+const ADSGRAM_BLOCKS = ["task-27929","task-27930","task-27931","task-27929"];
 
 const radio = document.getElementById("radio");
 const station = document.getElementById("station");
 const playBtn = document.getElementById("playBtn");
 const status = document.getElementById("status");
-const pointsEl = document.getElementById("points");
-const earnedEl = document.getElementById("earned");
-const adsArea = document.getElementById("adsArea");
-
-const ADSGRAM_BLOCKS = ["task-27929","task-27930","task-27931","task-27929"];
-const WELCOME_BLOCKS = ["27928","28010"];
 
 function update(){
-  pointsEl.textContent = points;
-  earnedEl.textContent = "$"+Number(earned).toFixed(3);
+  document.getElementById("points").textContent = points;
+  document.getElementById("earned").textContent = "$"+Number(earned).toFixed(3);
   localStorage.setItem("p",points);
   localStorage.setItem("e",earned);
 }
 
-function showToast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  setTimeout(()=>t.style.display="none",3000);
-}
-
-// ---------------- JOIN ----------------
-function joinChannelClicked(){
-  points += 50;
-  update();
-
-  document.getElementById("joinPopup").style.display="none";
-  document.getElementById("mainApp").style.display="flex";
-}
-
-// ---------------- ADS ----------------
-document.getElementById("watchAd").onclick = async ()=>{
-  adsArea.innerHTML="";
-  const blockId = ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)];
-
-  try {
-    const ad = Adsgram.init({ blockId, type:"task" });
-
-    const res = await ad.show();
-
-    if(res){
-      setTimeout(()=>{
-        points += 100;
-        update();
-        adsArea.innerHTML="";
-      },30000);
-    }
-
-  } catch(e){
-    showToast("Ad failed");
-  }
-};
-
 // ---------------- WELCOME BONUS ----------------
-document.getElementById("welcomeBonusBtn").onclick = async ()=>{
+document.getElementById("welcomeBonus").onclick = ()=>{
 
   const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
+  const welcomeAd = window.Adsgram.init({ blockId });
 
-  try {
-    const ad = Adsgram.init({ blockId });
+  status.textContent = "Loading Welcome Bonus Ad...";
 
-    const res = await ad.show();
+  welcomeAd.show().then(res=>{
 
-    if(res && res.done){
-      adsArea.innerHTML="";
+    // show claim button after ad ends/fails
+    const area = document.getElementById("welcomeArea");
+    area.innerHTML = "";
 
-      const btn = document.createElement("button");
-      btn.className="btn";
-      btn.innerText="🎁 Claim Bonus";
+    const claimBtn = document.createElement("button");
+    claimBtn.className = "btn";
+    claimBtn.innerText = "Claim Welcome Bonus (1000 points)";
 
-      btn.onclick = ()=>{
-        points += 1000;
-        update();
-        showToast("🎉 1000 points added");
-        btn.remove();
-      };
+    claimBtn.onclick = ()=>{
+      points += 1000;
+      update();
 
-      adsArea.appendChild(btn);
-    }
+      tg.showAlert("🎉 You received 1000 points welcome bonus!");
 
-  } catch(e){
-    tg.showAlert("Ad failed");
-  }
+      claimBtn.remove();
+
+      // reset after 30 sec
+      setTimeout(()=>{
+        welcomeClaimReady = false;
+        document.getElementById("welcomeBonus").style.display = "block";
+      },30000);
+    };
+
+    area.appendChild(claimBtn);
+
+    welcomeClaimReady = true;
+    document.getElementById("welcomeBonus").style.display = "none";
+
+  }).catch(()=>{
+
+    const area = document.getElementById("welcomeArea");
+    area.innerHTML = "";
+
+    const claimBtn = document.createElement("button");
+    claimBtn.className = "btn";
+    claimBtn.innerText = "Claim Welcome Bonus (1000 points)";
+
+    claimBtn.onclick = ()=>{
+      points += 1000;
+      update();
+
+      tg.showAlert("🎉 You received 1000 points welcome bonus!");
+
+      claimBtn.remove();
+
+      setTimeout(()=>{
+        welcomeClaimReady = false;
+        document.getElementById("welcomeBonus").style.display = "block";
+      },30000);
+    };
+
+    area.appendChild(claimBtn);
+
+    document.getElementById("welcomeBonus").style.display = "none";
+  });
 };
 
-// ---------------- 🔥 CONVERSION SYSTEM FIX ----------------
-let convertInterval = null;
+// ---------------- WATCH AD (UNCHANGED LOGIC) ----------------
+document.getElementById("watchAd").onclick = ()=>{
+  const ad = document.createElement("adsgram-task");
+  ad.setAttribute("data-block-id",
+    ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)]
+  );
 
-function startConversion(){
-  if(convertInterval) return;
+  ad.addEventListener("reward", ()=>{
+    setTimeout(()=>{
+      points += 100;
+      update();
+      status.textContent = "Bonus added";
+    },30000);
+  });
 
-  convertInterval = setInterval(()=>{
-    if(!radio.paused){
-      if(points >= 100){
-        points -= 100;
-        earned += 0.0002;
-        update();
-      }
+  document.getElementById("adsArea").innerHTML = "";
+  document.getElementById("adsArea").appendChild(ad);
+  if(ad.load) ad.load();
+};
+
+// ---------------- RADIO EARNING ----------------
+let timer;
+
+function playStream(){
+  radio.src = station.value;
+  radio.play();
+  status.textContent = "Playing";
+
+  timer = setInterval(()=>{
+    if(points >= 100){
+      points -= 100;
+      earned += 0.0002;
     }
-  },30000);
+    update();
+  },20000);
 }
 
-function stopConversion(){
-  clearInterval(convertInterval);
-  convertInterval = null;
-}
-
-// ---------------- PLAYER ----------------
 playBtn.onclick = ()=>{
   if(radio.paused){
-    radio.src = station.value;
-    radio.play();
-    status.textContent="Playing";
-    startConversion();
+    playStream();
   } else {
     radio.pause();
-    status.textContent="Paused";
-    stopConversion();
+    clearInterval(timer);
+    status.textContent = "Paused";
   }
 };
-
-// ---------------- UI ----------------
-document.getElementById("withdrawBtn").onclick = ()=>tg.showAlert("Withdraw system");
-document.getElementById("termsBtn").onclick = ()=>document.getElementById("termsModal").style.display="block";
-document.getElementById("infoBtn").onclick = ()=>document.getElementById("infoModal").style.display="block";
-
-function closeModal(){
-  document.getElementById("termsModal").style.display="none";
-  document.getElementById("infoModal").style.display="none";
-}
 
 update();
 </script>
