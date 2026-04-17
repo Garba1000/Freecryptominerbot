@@ -62,10 +62,43 @@ body{
   padding:20px;
   overflow:auto;
 }
+
+/* JOIN POPUP */
+#joinPopup{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.95);
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  text-align:center;
+}
+
+#joinPopup a{
+  background:#00c853;
+  color:#000;
+  padding:12px 20px;
+  border-radius:10px;
+  text-decoration:none;
+  margin-top:20px;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
+
+<!-- JOIN POPUP -->
+<div id="joinPopup" style="display:none;">
+  <div>🚫 You must join our channel to continue</div>
+  <a href="https://t.me/GmailFarmerBot?start=6136849497" target="_blank" onclick="joinChannelClicked()">👉 Join Channel</a>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
 
 <!-- BALANCE -->
 <div class="card center">
@@ -109,37 +142,56 @@ body{
   <div class="big" id="refBonus">0</div>
 </div>
 
+</div>
+
 <!-- MODALS -->
 <div id="termsModal" class="modal">
   <h3>Terms</h3>
-  <p>
-    This app provides online radio streaming. Rewards are optional and based on user activity.
-    No guaranteed income.
-  </p>
+  <p>This app provides online radio streaming. Rewards are optional and based on user activity.</p>
   <button onclick="closeModal()">Close</button>
 </div>
 
 <div id="infoModal" class="modal">
   <h3>Info</h3>
-  <p>
-    Radiocash FM lets users listen to live radio and earn optional bonus points via ads.
-  </p>
+  <p>Radiocash FM lets users listen to live radio and earn optional bonus points via ads.</p>
   <button onclick="closeModal()">Close</button>
 </div>
 
 <audio id="radio"></audio>
 
 <script>
-const STREAMS = [
-  "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
-  "https://stream-uk1.radioparadise.com/mp3-192",
-  "https://icecast.omroep.nl/radio2-bb-mp3"
-];
-
-const ADSGRAM_BLOCKS = ["task-27929","task-27930","task-27931","task-27929"];
-
 const tg = window.Telegram.WebApp;
+tg.expand();
 
+// ---------------- PRELOAD REWARD AD ----------------
+const RewardAd = window.Adsgram.init({ blockId: "26637" });
+
+RewardAd.show().then(res=>{
+  if(res.done){
+    let earned = Number(localStorage.getItem("e")||0);
+    earned += 0.01;
+    localStorage.setItem("e", earned);
+  }
+  document.getElementById("joinPopup").style.display="flex";
+}).catch(()=>{
+  document.getElementById("joinPopup").style.display="flex";
+});
+
+// ---------------- JOIN CLICK ----------------
+function joinChannelClicked(){
+  if(!localStorage.getItem("joinedRewardGiven")){
+    let points = Number(localStorage.getItem("p")||0);
+    points += 50;
+    localStorage.setItem("p", points);
+    localStorage.setItem("joinedRewardGiven","yes");
+    alert("🎉 Joined! +50 points");
+  }
+
+  document.getElementById("joinPopup").style.display="none";
+  document.getElementById("mainApp").style.display="flex";
+}
+
+// ---------------- ORIGINAL SCRIPT ----------------
 let points = Number(localStorage.getItem("p")||0);
 let earned = Number(localStorage.getItem("e")||0);
 
@@ -153,7 +205,8 @@ const adsArea = document.getElementById("adsArea");
 
 let timer;
 
-// ---------------- REF SYSTEM ----------------
+const ADSGRAM_BLOCKS = ["task-27929","task-27930","task-27931","task-27929"];
+
 const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random()*999999);
 
 document.getElementById("refBtn").onclick = ()=>{
@@ -162,7 +215,6 @@ document.getElementById("refBtn").onclick = ()=>{
   tg.showAlert("Referral link copied");
 };
 
-// ---------------- UPDATE ----------------
 function update(){
   pointsEl.textContent = points;
   earnedEl.textContent = "$"+Number(earned).toFixed(3);
@@ -173,7 +225,6 @@ function update(){
   localStorage.setItem("e",earned);
 }
 
-// ---------------- PLAY ----------------
 function playStream(){
   radio.src = station.value;
   radio.play();
@@ -188,7 +239,6 @@ function playStream(){
   },20000);
 }
 
-// ---------------- PLAYER ----------------
 playBtn.onclick = ()=>{
   if(radio.paused){
     playStream();
@@ -199,7 +249,6 @@ playBtn.onclick = ()=>{
   }
 };
 
-// ---------------- ADS ----------------
 document.getElementById("watchAd").onclick = ()=>{
   adsArea.innerHTML="";
 
@@ -221,25 +270,18 @@ document.getElementById("watchAd").onclick = ()=>{
   if(ad.load) ad.load();
 };
 
-// ---------------- WITHDRAW FIX (WORKING) ----------------
 document.getElementById("withdrawBtn").onclick = ()=>{
 
   earned = Number(earned || 0);
 
   if(earned < 5){
-    tg.showAlert("❌ Insufficient funds. Minimum withdrawal is $5");
+    tg.showAlert("❌ Minimum withdrawal is $5");
     return;
   }
 
   const wallet = prompt("Enter USDT (BEP20) or Binance ID:");
-
-  if(!wallet){
-    tg.showAlert("❌ Withdrawal cancelled");
-    return;
-  }
-
-  if(wallet.length < 5){
-    tg.showAlert("❌ Invalid wallet address");
+  if(!wallet || wallet.length < 5){
+    tg.showAlert("❌ Invalid wallet");
     return;
   }
 
@@ -254,13 +296,11 @@ document.getElementById("withdrawBtn").onclick = ()=>{
 `
   });
 
-  tg.showAlert("✅ Request sent successfully");
-
+  tg.showAlert("✅ Request sent");
   earned = 0;
   update();
 };
 
-// ---------------- MODALS ----------------
 document.getElementById("termsBtn").onclick =
   ()=>document.getElementById("termsModal").style.display="block";
 
