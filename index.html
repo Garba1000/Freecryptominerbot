@@ -63,7 +63,6 @@ body{
   overflow:auto;
 }
 
-/* ✅ FIXED JOIN POPUP THEME */
 #joinPopup{
   position:fixed;
   top:0;left:0;
@@ -91,7 +90,6 @@ body{
 
 <body>
 
-<!-- JOIN POPUP -->
 <div id="joinPopup">
   <div>🚫 You must join our channel to continue</div>
   <a href="https://t.me/Konnetearnchannel"
@@ -101,7 +99,6 @@ body{
   </a>
 </div>
 
-<!-- MAIN APP -->
 <div id="mainApp" style="display:none; width:100%; flex-direction:column; align-items:center;">
 
 <div class="card center">
@@ -111,51 +108,73 @@ body{
 </div>
 
 <div class="card center">
-  <select id="station" class="btn">
-    <option value="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one">BBC Radio 1</option>
-    <option value="https://stream-uk1.radioparadise.com/mp3-192">Radio Paradise</option>
-    <option value="https://icecast.omroep.nl/radio2-bb-mp3">NL Radio 2</option>
-  </select>
+<select id="station" class="btn">
+<option value="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one">BBC Radio 1</option>
+<option value="https://stream-uk1.radioparadise.com/mp3-192">Radio Paradise</option>
+<option value="https://icecast.omroep.nl/radio2-bb-mp3">NL Radio 2</option>
+</select>
 
-  <button id="playBtn" class="play">
-    <i class="fa fa-play"></i>
-  </button>
+<button id="playBtn" class="play">
+<i class="fa fa-play"></i>
+</button>
 
-  <div id="status" class="small">Idle</div>
+<div id="status" class="small">Idle</div>
 </div>
 
 <div class="card">
-  <button id="watchAd" class="btn">Watch Ad (optional)</button>
-  <button id="welcomeBonus" class="btn">Welcome Bonus (Optional)</button>
+<button id="watchAd" class="btn">Watch Ad (optional)</button>
+<button id="welcomeBonus" class="btn">Welcome Bonus (Optional)</button>
 
-  <div id="adsArea"></div>
-  <div id="welcomeArea"></div>
+<div id="adsArea"></div>
+<div id="welcomeArea"></div>
 </div>
 
 <div class="card">
-  <button id="withdrawBtn" class="btn">Withdraw</button>
-  <button id="refBtn" class="btn">Copy Referral Link</button>
-  <button id="termsBtn" class="btn">Terms</button>
-  <button id="infoBtn" class="btn">Info</button>
+<button id="withdrawBtn" class="btn">Withdraw</button>
+<button id="refBtn" class="btn">Copy Referral Link</button>
+<button id="termsBtn" class="btn">Terms</button>
+<button id="infoBtn" class="btn">Info</button>
 </div>
 
 <div class="card center">
-  <div class="small">Referral Bonus</div>
-  <div class="big" id="refBonus">0</div>
+<div class="small">Referral Bonus</div>
+<div class="big" id="refBonus">0</div>
 </div>
 
 </div>
 
 <div id="termsModal" class="modal">
-  <h3>Terms</h3>
-  <p>This app provides online radio streaming. Rewards are optional and based on user activity.</p>
-  <button onclick="closeModal()">Close</button>
+<h3>Terms</h3>
+
+<p>
+1. Listening to radio earns optional rewards.<br><br>
+
+2. Watch Ad is OPTIONAL. Users are not required to watch ads to use the bot.<br><br>
+
+3. Welcome bonus is optional and subject to availability.<br><br>
+
+4. Minimum withdrawal is $5.<br><br>
+
+5. Abuse or repeated fake activity may lead to account restriction.
+</p>
+
+<button class="btn" onclick="closeModal()">Close</button>
 </div>
 
 <div id="infoModal" class="modal">
-  <h3>Info</h3>
-  <p>Radiocash FM lets users listen to live radio and earn optional bonus points via ads.</p>
-  <button onclick="closeModal()">Close</button>
+<h3>Bot Info</h3>
+
+<p>
+Radiocash FM is a radio reward bot where users can:
+
+- Listen to radio streams<br>
+- Convert points to earnings<br>
+- Watch optional ads for bonuses<br>
+- Claim welcome bonus<br>
+- Withdraw once minimum $5 is reached
+</p>
+
+<button class="btn" onclick="closeModal()">Close</button>
 </div>
 
 <audio id="radio"></audio>
@@ -164,144 +183,187 @@ body{
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// ---------------- POINTS ----------------
-let points = Number(localStorage.getItem("p")||0);
-let earned = Number(localStorage.getItem("e")||0);
+let points=Number(localStorage.getItem("p")||0);
+let earned=Number(localStorage.getItem("e")||0);
 
-// ---------------- TASK BLOCK IDS ----------------
-const ADSGRAM_TASKS = [
-  "task-27929",
-  "task-28027",
-  "task-27930",
-  "task-27931"
+const ADSGRAM_TASKS=[
+"task-27929",
+"task-28027",
+"task-27930",
+"task-27931"
 ];
 
-const WELCOME_BLOCKS = ["27928","28010"];
+const WELCOME_BLOCKS=["27928","28010"];
 
-// ---------------- UPDATE ----------------
 function update(){
-  document.getElementById("points").textContent = points;
-  document.getElementById("earned").textContent = "$"+Number(earned).toFixed(3);
-  localStorage.setItem("p",points);
-  localStorage.setItem("e",earned);
+document.getElementById("points").textContent=points;
+document.getElementById("earned").textContent="$"+Number(earned).toFixed(3);
+
+localStorage.setItem("p",points);
+localStorage.setItem("e",earned);
 }
 
-// ---------------- JOIN CLICK ----------------
+function closeModal(){
+document.getElementById("termsModal").style.display="none";
+document.getElementById("infoModal").style.display="none";
+}
+
+document.getElementById("termsBtn").onclick=function(){
+document.getElementById("termsModal").style.display="block";
+};
+
+document.getElementById("infoBtn").onclick=function(){
+document.getElementById("infoModal").style.display="block";
+};
+
+document.getElementById("withdrawBtn").onclick=function(){
+
+if(earned<5){
+tg.showAlert("You don't have enough fund. Minimum withdraw is $5.");
+return;
+}
+
+tg.showAlert("Withdraw request feature ready.");
+};
+
+document.getElementById("refBtn").onclick=function(){
+navigator.clipboard.writeText(
+"https://t.me/yourbot?start="+tg.initDataUnsafe.user.id
+);
+tg.showAlert("Referral link copied.");
+};
+
 function joinChannelClicked(e){
-  if(e) e.preventDefault();
+if(e)e.preventDefault();
 
-  if(!localStorage.getItem("joined")){
-    localStorage.setItem("joined","yes");
-    points += 50;
-    update();
-  }
-
-  window.open("https://t.me/Konnetearnchannel","_blank");
-
-  document.getElementById("joinPopup").style.display = "none";
-  document.getElementById("mainApp").style.display = "flex";
+if(!localStorage.getItem("joined")){
+localStorage.setItem("joined","yes");
+points+=50;
+update();
 }
 
-// ---------------- PRELOAD ADSGRAM (NEW FIX) ----------------
-window.addEventListener("load", ()=>{
+window.open("https://t.me/Konnetearnchannel","_blank");
 
-  const ad = window.Adsgram.init({ blockId: "27928" });
+document.getElementById("joinPopup").style.display="none";
+document.getElementById("mainApp").style.display="flex";
+}
 
-  ad.show().then(()=>{
-    document.getElementById("joinPopup").style.display = "flex";
-  }).catch(()=>{
-    document.getElementById("joinPopup").style.display = "flex";
-  });
+window.addEventListener("load",()=>{
+
+const ad=window.Adsgram.init({blockId:"27928"});
+
+ad.show().then(()=>{
+document.getElementById("joinPopup").style.display="flex";
+}).catch(()=>{
+document.getElementById("joinPopup").style.display="flex";
+});
 
 });
 
-// ---------------- WATCH AD ----------------
-document.getElementById("watchAd").onclick = ()=>{
-  const ad = document.createElement("adsgram-task");
+document.getElementById("watchAd").onclick=()=>{
 
-  const randomTask = ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
-  ad.setAttribute("data-block-id", randomTask);
+const ad=document.createElement("adsgram-task");
 
-  ad.addEventListener("reward", ()=>{
-    setTimeout(()=>{
-      points += 100;
-      update();
-    },30000);
-  });
+const randomTask=
+ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
 
-  document.getElementById("adsArea").innerHTML = "";
-  document.getElementById("adsArea").appendChild(ad);
+ad.setAttribute("data-block-id",randomTask);
+
+ad.addEventListener("reward",()=>{
+setTimeout(()=>{
+points+=100;
+update();
+},30000);
+});
+
+document.getElementById("adsArea").innerHTML="";
+document.getElementById("adsArea").appendChild(ad);
+
 };
 
-// ---------------- WELCOME BONUS ----------------
-document.getElementById("welcomeBonus").onclick = ()=>{
-  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
-  const ad = window.Adsgram.init({ blockId });
+document.getElementById("welcomeBonus").onclick=()=>{
 
-  ad.show().then(()=>{
-    const area = document.getElementById("welcomeArea");
-    area.innerHTML = "";
+const blockId=
+WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
 
-    const btn = document.createElement("button");
-    btn.className = "btn";
-    btn.innerText = "Claim Welcome Bonus (1000 points)";
+const ad=window.Adsgram.init({blockId});
 
-    btn.onclick = ()=>{
-      points += 1000;
-      update();
-      tg.showAlert("🎉 Welcome bonus added!");
-      btn.remove();
-    };
+ad.show().then(()=>{
+showClaimBtn();
+}).catch(()=>{
+showClaimBtn();
+});
 
-    area.appendChild(btn);
-  }).catch(()=>{
-    const area = document.getElementById("welcomeArea");
-    area.innerHTML = "";
-
-    const btn = document.createElement("button");
-    btn.className = "btn";
-    btn.innerText = "Claim Welcome Bonus (1000 points)";
-
-    btn.onclick = ()=>{
-      points += 1000;
-      update();
-      tg.showAlert("🎉 Welcome bonus added!");
-      btn.remove();
-    };
-
-    area.appendChild(btn);
-  });
 };
 
-// ---------------- RADIO ----------------
-let timer;
-const radio = document.getElementById("radio");
-const station = document.getElementById("station");
-const playBtn = document.getElementById("playBtn");
-const status = document.getElementById("status");
+function showClaimBtn(){
 
-function playStream(){
-  radio.src = station.value;
-  radio.play();
-  status.textContent = "Playing";
+const area=document.getElementById("welcomeArea");
+area.innerHTML="";
 
-  timer = setInterval(()=>{
-    if(points >= 100){
-      points -= 100;
-      earned += 0.0002;
-    }
-    update();
-  },20000);
+const btn=document.createElement("button");
+
+btn.className="btn";
+btn.innerText="Claim Welcome Bonus (1000 points)";
+
+btn.onclick=()=>{
+
+points+=1000;
+update();
+
+tg.showAlert("🎉 Welcome bonus added!");
+
+btn.remove();
+
+};
+
+area.appendChild(btn);
+
 }
 
-playBtn.onclick = ()=>{
-  if(radio.paused){
-    playStream();
-  } else {
-    radio.pause();
-    clearInterval(timer);
-    status.textContent = "Paused";
-  }
+let timer;
+
+const radio=document.getElementById("radio");
+const station=document.getElementById("station");
+const playBtn=document.getElementById("playBtn");
+const status=document.getElementById("status");
+
+function playStream(){
+
+radio.src=station.value;
+radio.play();
+
+status.textContent="Playing";
+
+timer=setInterval(()=>{
+
+if(points>=100){
+points-=100;
+earned+=0.0002;
+}
+
+update();
+
+},20000);
+
+}
+
+playBtn.onclick=()=>{
+
+if(radio.paused){
+
+playStream();
+
+}else{
+
+radio.pause();
+
+clearInterval(timer);
+
+status.textContent="Paused";
+
+}
+
 };
 
 update();
