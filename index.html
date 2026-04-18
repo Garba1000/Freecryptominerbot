@@ -20,7 +20,6 @@ body{
   flex-direction:column;
   align-items:center;
 }
-
 .card{
   width:100%;
   max-width:520px;
@@ -29,7 +28,6 @@ body{
   padding:15px;
   margin-bottom:12px;
 }
-
 .btn{
   width:100%;
   padding:12px;
@@ -40,7 +38,6 @@ body{
   cursor:pointer;
   margin-top:8px;
 }
-
 .play{
   width:70px;height:70px;
   border-radius:50%;
@@ -48,7 +45,6 @@ body{
   background:linear-gradient(135deg,#38bdf8,#6366f1);
   font-size:24px;
 }
-
 .center{text-align:center}
 .small{font-size:13px;color:#94a3b8}
 .big{font-size:22px;font-weight:600}
@@ -75,7 +71,6 @@ body{
   flex-direction:column;
   text-align:center;
 }
-
 #joinPopup a{
   background:linear-gradient(135deg,#6366f1,#38bdf8);
   color:#fff;
@@ -145,35 +140,25 @@ body{
 
 <div id="termsModal" class="modal">
 <h3>Terms</h3>
-
 <p>
 1. Listening to radio earns optional rewards.<br><br>
-
-2. Watch Ad is OPTIONAL. Users are not required to watch ads to use the bot.<br><br>
-
-3. Welcome bonus is optional and subject to availability.<br><br>
-
+2. Watch Ad is OPTIONAL.<br><br>
+3. Welcome bonus is optional.<br><br>
 4. Minimum withdrawal is $5.<br><br>
-
-5. Abuse or repeated fake activity may lead to account restriction.
+5. Abuse may lead to restriction.
 </p>
-
 <button class="btn" onclick="closeModal()">Close</button>
 </div>
 
 <div id="infoModal" class="modal">
 <h3>Bot Info</h3>
-
 <p>
-Radiocash FM is a radio reward bot where users can:
-
-- Listen to radio streams<br>
-- Convert points to earnings<br>
-- Watch optional ads for bonuses<br>
-- Claim welcome bonus<br>
-- Withdraw once minimum $5 is reached
+Radiocash FM lets you:
+- Listen & earn<br>
+- Watch ads<br>
+- Claim bonuses<br>
+- Withdraw earnings
 </p>
-
 <button class="btn" onclick="closeModal()">Close</button>
 </div>
 
@@ -197,40 +182,30 @@ const WELCOME_BLOCKS=["27928","28010"];
 
 function update(){
 document.getElementById("points").textContent=points;
-document.getElementById("earned").textContent="$"+Number(earned).toFixed(3);
-
+document.getElementById("earned").textContent="$"+earned.toFixed(3);
 localStorage.setItem("p",points);
 localStorage.setItem("e",earned);
 }
 
 function closeModal(){
-document.getElementById("termsModal").style.display="none";
-document.getElementById("infoModal").style.display="none";
+termsModal.style.display="none";
+infoModal.style.display="none";
 }
 
-document.getElementById("termsBtn").onclick=function(){
-document.getElementById("termsModal").style.display="block";
-};
+termsBtn.onclick=()=>termsModal.style.display="block";
+infoBtn.onclick=()=>infoModal.style.display="block";
 
-document.getElementById("infoBtn").onclick=function(){
-document.getElementById("infoModal").style.display="block";
-};
-
-document.getElementById("withdrawBtn").onclick=function(){
-
+withdrawBtn.onclick=()=>{
 if(earned<5){
 tg.showAlert("You don't have enough fund. Minimum withdraw is $5.");
 return;
 }
-
-tg.showAlert("Withdraw request feature ready.");
+tg.showAlert("Withdraw request ready.");
 };
 
-document.getElementById("refBtn").onclick=function(){
-navigator.clipboard.writeText(
-"https://t.me/yourbot?start="+tg.initDataUnsafe.user.id
-);
-tg.showAlert("Referral link copied.");
+refBtn.onclick=()=>{
+navigator.clipboard.writeText("https://t.me/yourbot?start="+tg.initDataUnsafe.user.id);
+tg.showAlert("Referral copied.");
 };
 
 function joinChannelClicked(e){
@@ -244,29 +219,20 @@ update();
 
 window.open("https://t.me/Konnetearnchannel","_blank");
 
-document.getElementById("joinPopup").style.display="none";
-document.getElementById("mainApp").style.display="flex";
+joinPopup.style.display="none";
+mainApp.style.display="flex";
 }
 
 window.addEventListener("load",()=>{
-
 const ad=window.Adsgram.init({blockId:"27928"});
-
-ad.show().then(()=>{
-document.getElementById("joinPopup").style.display="flex";
-}).catch(()=>{
-document.getElementById("joinPopup").style.display="flex";
+ad.show().finally(()=>{
+joinPopup.style.display="flex";
+});
 });
 
-});
-
-document.getElementById("watchAd").onclick=()=>{
-
+watchAd.onclick=()=>{
 const ad=document.createElement("adsgram-task");
-
-const randomTask=
-ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
-
+const randomTask=ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
 ad.setAttribute("data-block-id",randomTask);
 
 ad.addEventListener("reward",()=>{
@@ -276,94 +242,71 @@ update();
 },30000);
 });
 
-document.getElementById("adsArea").innerHTML="";
-document.getElementById("adsArea").appendChild(ad);
-
+adsArea.innerHTML="";
+adsArea.appendChild(ad);
 };
 
-document.getElementById("welcomeBonus").onclick=()=>{
-
-const blockId=
-WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
-
+welcomeBonus.onclick=()=>{
+const blockId=WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
 const ad=window.Adsgram.init({blockId});
-
-ad.show().then(()=>{
-showClaimBtn();
-}).catch(()=>{
-showClaimBtn();
-});
-
+ad.show().finally(()=>showClaimBtn());
 };
 
+/* ✅ UPDATED LOGIC HERE ONLY */
 function showClaimBtn(){
-
-const area=document.getElementById("welcomeArea");
-area.innerHTML="";
+welcomeArea.innerHTML="";
 
 const btn=document.createElement("button");
-
 btn.className="btn";
 btn.innerText="Claim Welcome Bonus (1000 points)";
 
 btn.onclick=()=>{
 
-points+=1000;
-update();
-
-tg.showAlert("🎉 Welcome bonus added!");
-
 btn.remove();
 
+const task=document.createElement("adsgram-task");
+
+const randomTask=ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
+
+task.setAttribute("data-block-id",randomTask);
+
+task.addEventListener("reward",()=>{
+points+=1000;
+update();
+tg.showAlert("🎉 Bonus completed! 1000 points added.");
+task.remove();
+});
+
+task.addEventListener("error",()=>{
+tg.showAlert("Complete the task to receive bonus.");
+});
+
+welcomeArea.appendChild(task);
 };
 
-area.appendChild(btn);
-
+welcomeArea.appendChild(btn);
 }
 
 let timer;
-
-const radio=document.getElementById("radio");
-const station=document.getElementById("station");
-const playBtn=document.getElementById("playBtn");
-const status=document.getElementById("status");
-
-function playStream(){
-
+playBtn.onclick=()=>{
+if(radio.paused){
 radio.src=station.value;
 radio.play();
-
 status.textContent="Playing";
 
 timer=setInterval(()=>{
-
 if(points>=100){
 points-=100;
 earned+=0.0002;
 }
-
 update();
-
 },20000);
 
-}
-
-playBtn.onclick=()=>{
-
-if(radio.paused){
-
-playStream();
-
 }else{
-
 radio.pause();
-
 clearInterval(timer);
-
 status.textContent="Paused";
-
 }
-
 };
 
 update();
