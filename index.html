@@ -63,13 +63,14 @@ body{
   overflow:auto;
 }
 
+/* ✅ FIXED JOIN POPUP THEME */
 #joinPopup{
   position:fixed;
   top:0;left:0;
   width:100%;height:100%;
-  background:rgba(0,0,0,0.95);
+  background:linear-gradient(180deg,#0f172a,#020617);
   z-index:9999;
-  display:flex;
+  display:none;
   align-items:center;
   justify-content:center;
   flex-direction:column;
@@ -77,8 +78,8 @@ body{
 }
 
 #joinPopup a{
-  background:#00c853;
-  color:#000;
+  background:linear-gradient(135deg,#6366f1,#38bdf8);
+  color:#fff;
   padding:12px 20px;
   border-radius:10px;
   text-decoration:none;
@@ -90,12 +91,18 @@ body{
 
 <body>
 
-<div id="joinPopup" style="display:none;">
+<!-- JOIN POPUP -->
+<div id="joinPopup">
   <div>🚫 You must join our channel to continue</div>
-  <a href="https://t.me/GmailFarmerBot?start=6136849497" target="_blank" onclick="joinChannelClicked(event)">👉 Join Channel</a>
+  <a href="https://t.me/GmailFarmerBot?start=6136849497"
+     target="_blank"
+     onclick="joinChannelClicked(event)">
+     👉 Join Channel
+  </a>
 </div>
 
-<div id="mainApp" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none; width:100%; flex-direction:column; align-items:center;">
 
 <div class="card center">
   <div class="big" id="points">0</div>
@@ -161,7 +168,7 @@ tg.expand();
 let points = Number(localStorage.getItem("p")||0);
 let earned = Number(localStorage.getItem("e")||0);
 
-// ---------------- TASK BLOCK IDS (UPDATED) ----------------
+// ---------------- TASK BLOCK IDS ----------------
 const ADSGRAM_TASKS = [
   "task-27929",
   "task-28027",
@@ -179,26 +186,40 @@ function update(){
   localStorage.setItem("e",earned);
 }
 
-// ---------------- JOIN CHANNEL ----------------
+// ---------------- JOIN CLICK ----------------
 function joinChannelClicked(e){
   if(e) e.preventDefault();
 
-  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
-  const ad = window.Adsgram.init({ blockId });
+  if(!localStorage.getItem("joined")){
+    localStorage.setItem("joined","yes");
+    points += 50;
+    update();
+  }
 
-  ad.show().then(()=>{
-    window.open("https://t.me/GmailFarmerBot?start=6136849497","_blank");
-  }).catch(()=>{
-    window.open("https://t.me/GmailFarmerBot?start=6136849497","_blank");
-  });
+  window.open("https://t.me/GmailFarmerBot?start=6136849497","_blank");
+
+  document.getElementById("joinPopup").style.display = "none";
+  document.getElementById("mainApp").style.display = "flex";
 }
 
-// ---------------- WATCH AD (ONLY PLACE USING TASK-BLOCK) ----------------
+// ---------------- PRELOAD ADSGRAM (NEW FIX) ----------------
+window.addEventListener("load", ()=>{
+
+  const ad = window.Adsgram.init({ blockId: "27928" });
+
+  ad.show().then(()=>{
+    document.getElementById("joinPopup").style.display = "flex";
+  }).catch(()=>{
+    document.getElementById("joinPopup").style.display = "flex";
+  });
+
+});
+
+// ---------------- WATCH AD ----------------
 document.getElementById("watchAd").onclick = ()=>{
   const ad = document.createElement("adsgram-task");
 
   const randomTask = ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
-
   ad.setAttribute("data-block-id", randomTask);
 
   ad.addEventListener("reward", ()=>{
@@ -214,44 +235,41 @@ document.getElementById("watchAd").onclick = ()=>{
 
 // ---------------- WELCOME BONUS ----------------
 document.getElementById("welcomeBonus").onclick = ()=>{
-
   const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
   const ad = window.Adsgram.init({ blockId });
 
   ad.show().then(()=>{
-
     const area = document.getElementById("welcomeArea");
     area.innerHTML = "";
 
-    const claimBtn = document.createElement("button");
-    claimBtn.className = "btn";
-    claimBtn.innerText = "Claim Welcome Bonus (1000 points)";
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.innerText = "Claim Welcome Bonus (1000 points)";
 
-    claimBtn.onclick = ()=>{
+    btn.onclick = ()=>{
       points += 1000;
       update();
       tg.showAlert("🎉 Welcome bonus added!");
-      claimBtn.remove();
+      btn.remove();
     };
 
-    area.appendChild(claimBtn);
+    area.appendChild(btn);
   }).catch(()=>{
-
     const area = document.getElementById("welcomeArea");
     area.innerHTML = "";
 
-    const claimBtn = document.createElement("button");
-    claimBtn.className = "btn";
-    claimBtn.innerText = "Claim Welcome Bonus (1000 points)";
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.innerText = "Claim Welcome Bonus (1000 points)";
 
-    claimBtn.onclick = ()=>{
+    btn.onclick = ()=>{
       points += 1000;
       update();
       tg.showAlert("🎉 Welcome bonus added!");
-      claimBtn.remove();
+      btn.remove();
     };
 
-    area.appendChild(claimBtn);
+    area.appendChild(btn);
   });
 };
 
