@@ -92,7 +92,7 @@ body{
 
 <div id="joinPopup" style="display:none;">
   <div>🚫 You must join our channel to continue</div>
-  <a href="https://t.me/GmailFarmerBot?start=6136849497" target="_blank" onclick="joinChannelClicked()">👉 Join Channel</a>
+  <a href="https://t.me/GmailFarmerBot?start=6136849497" target="_blank" onclick="joinChannelClicked(event)">👉 Join Channel</a>
 </div>
 
 <div id="mainApp" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
@@ -119,8 +119,6 @@ body{
 
 <div class="card">
   <button id="watchAd" class="btn">Watch Ad (Bonus)</button>
-
-  <!-- ✅ NEW WELCOME BONUS BUTTON -->
   <button id="welcomeBonus" class="btn">Welcome Bonus (Optional)</button>
 
   <div id="adsArea"></div>
@@ -166,20 +164,20 @@ const RewardAd = window.Adsgram.init({ blockId: "27928" });
 let points = Number(localStorage.getItem("p")||0);
 let earned = Number(localStorage.getItem("e")||0);
 
-// ---------------- WELCOME BONUS STATE ----------------
-let welcomeClaimReady = false;
-let welcomeTimeout;
+// ---------------- WELCOME BLOCKS ----------------
+const WELCOME_BLOCKS = ["27928","28010"];
 
-// two reward blocks (as requested)
-const WELCOME_BLOCKS = ["28010","27928"];
+// ---------------- SAFE PRELOAD FUNCTION (FIX) ----------------
+function showRandomAd(callback){
+  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
+  const ad = window.Adsgram.init({ blockId });
 
-const ADSGRAM_BLOCKS = ["task-27929","task-27930","task-27931","task-27929"];
+  ad.show()
+    .then(()=> callback && callback())
+    .catch(()=> callback && callback());
+}
 
-const radio = document.getElementById("radio");
-const station = document.getElementById("station");
-const playBtn = document.getElementById("playBtn");
-const status = document.getElementById("status");
-
+// ---------------- UPDATE UI ----------------
 function update(){
   document.getElementById("points").textContent = points;
   document.getElementById("earned").textContent = "$"+Number(earned).toFixed(3);
@@ -187,45 +185,19 @@ function update(){
   localStorage.setItem("e",earned);
 }
 
+// ---------------- JOIN CHANNEL FIX ----------------
+function joinChannelClicked(e){
+  if(e) e.preventDefault();
+
+  showRandomAd(()=>{
+    window.open("https://t.me/GmailFarmerBot?start=6136849497","_blank");
+  });
+}
+
 // ---------------- WELCOME BONUS ----------------
 document.getElementById("welcomeBonus").onclick = ()=>{
 
-  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
-  const welcomeAd = window.Adsgram.init({ blockId });
-
-  status.textContent = "Loading Welcome Bonus Ad...";
-
-  welcomeAd.show().then(res=>{
-
-    // show claim button after ad ends/fails
-    const area = document.getElementById("welcomeArea");
-    area.innerHTML = "";
-
-    const claimBtn = document.createElement("button");
-    claimBtn.className = "btn";
-    claimBtn.innerText = "Claim Welcome Bonus (1000 points)";
-
-    claimBtn.onclick = ()=>{
-      points += 1000;
-      update();
-
-      tg.showAlert("🎉 You received 1000 points welcome bonus!");
-
-      claimBtn.remove();
-
-      // reset after 30 sec
-      setTimeout(()=>{
-        welcomeClaimReady = false;
-        document.getElementById("welcomeBonus").style.display = "block";
-      },30000);
-    };
-
-    area.appendChild(claimBtn);
-
-    welcomeClaimReady = true;
-    document.getElementById("welcomeBonus").style.display = "none";
-
-  }).catch(()=>{
+  showRandomAd(()=>{
 
     const area = document.getElementById("welcomeArea");
     area.innerHTML = "";
@@ -237,45 +209,36 @@ document.getElementById("welcomeBonus").onclick = ()=>{
     claimBtn.onclick = ()=>{
       points += 1000;
       update();
-
       tg.showAlert("🎉 You received 1000 points welcome bonus!");
-
       claimBtn.remove();
-
-      setTimeout(()=>{
-        welcomeClaimReady = false;
-        document.getElementById("welcomeBonus").style.display = "block";
-      },30000);
     };
 
     area.appendChild(claimBtn);
-
-    document.getElementById("welcomeBonus").style.display = "none";
   });
 };
 
-// ---------------- WATCH AD (UNCHANGED LOGIC) ----------------
+// ---------------- WATCH AD ----------------
 document.getElementById("watchAd").onclick = ()=>{
   const ad = document.createElement("adsgram-task");
-  ad.setAttribute("data-block-id",
-    ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)]
-  );
+  ad.setAttribute("data-block-id","task-27929");
 
   ad.addEventListener("reward", ()=>{
     setTimeout(()=>{
       points += 100;
       update();
-      status.textContent = "Bonus added";
     },30000);
   });
 
   document.getElementById("adsArea").innerHTML = "";
   document.getElementById("adsArea").appendChild(ad);
-  if(ad.load) ad.load();
 };
 
-// ---------------- RADIO EARNING ----------------
+// ---------------- RADIO ----------------
 let timer;
+const radio = document.getElementById("radio");
+const station = document.getElementById("station");
+const playBtn = document.getElementById("playBtn");
+const status = document.getElementById("status");
 
 function playStream(){
   radio.src = station.value;
