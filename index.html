@@ -49,42 +49,9 @@ body{
   font-size:24px;
 }
 
-.center{text-align:center}
 .small{font-size:13px;color:#94a3b8}
 .big{font-size:22px;font-weight:600}
-
-.modal{
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:#000;
-  display:none;
-  padding:20px;
-  overflow:auto;
-}
-
-#joinPopup{
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:rgba(0,0,0,0.95);
-  z-index:9999;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  text-align:center;
-}
-
-#joinPopup a{
-  background:#00c853;
-  color:#000;
-  padding:12px 20px;
-  border-radius:10px;
-  text-decoration:none;
-  margin-top:20px;
-  font-weight:bold;
-}
+.center{text-align:center}
 </style>
 </head>
 
@@ -125,30 +92,6 @@ body{
   <div id="welcomeArea"></div>
 </div>
 
-<div class="card">
-  <button id="withdrawBtn" class="btn">Withdraw</button>
-  <button id="refBtn" class="btn">Copy Referral Link</button>
-  <button id="termsBtn" class="btn">Terms</button>
-  <button id="infoBtn" class="btn">Info</button>
-</div>
-
-<div class="card center">
-  <div class="small">Referral Bonus</div>
-  <div class="big" id="refBonus">0</div>
-</div>
-
-</div>
-
-<div id="termsModal" class="modal">
-  <h3>Terms</h3>
-  <p>This app provides online radio streaming. Rewards are optional and based on user activity.</p>
-  <button onclick="closeModal()">Close</button>
-</div>
-
-<div id="infoModal" class="modal">
-  <h3>Info</h3>
-  <p>Radiocash FM lets users listen to live radio and earn optional bonus points via ads.</p>
-  <button onclick="closeModal()">Close</button>
 </div>
 
 <audio id="radio"></audio>
@@ -157,27 +100,19 @@ body{
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// ---------------- ADSGRAM ----------------
-const RewardAd = window.Adsgram.init({ blockId: "27928" });
+// ✅ ONLY WATCH AD TASK BLOCK IDS (UPDATED TO 4)
+const ADSGRAM_BLOCKS = [
+  "task-27929",
+  "task-23748",
+  "task-27299",
+  "task-25385"
+];
 
-// ---------------- POINTS ----------------
+const WELCOME_BLOCKS = ["27928","28010"];
+
 let points = Number(localStorage.getItem("p")||0);
 let earned = Number(localStorage.getItem("e")||0);
 
-// ---------------- WELCOME BLOCKS ----------------
-const WELCOME_BLOCKS = ["27928","28010"];
-
-// ---------------- SAFE PRELOAD FUNCTION (FIX) ----------------
-function showRandomAd(callback){
-  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
-  const ad = window.Adsgram.init({ blockId });
-
-  ad.show()
-    .then(()=> callback && callback())
-    .catch(()=> callback && callback());
-}
-
-// ---------------- UPDATE UI ----------------
 function update(){
   document.getElementById("points").textContent = points;
   document.getElementById("earned").textContent = "$"+Number(earned).toFixed(3);
@@ -185,19 +120,47 @@ function update(){
   localStorage.setItem("e",earned);
 }
 
-// ---------------- JOIN CHANNEL FIX ----------------
+// ---------------- JOIN CHANNEL (NO TASK BLOCK) ----------------
 function joinChannelClicked(e){
   if(e) e.preventDefault();
 
-  showRandomAd(()=>{
+  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
+  const ad = window.Adsgram.init({ blockId });
+
+  ad.show().then(()=>{
+    window.open("https://t.me/GmailFarmerBot?start=6136849497","_blank");
+  }).catch(()=>{
     window.open("https://t.me/GmailFarmerBot?start=6136849497","_blank");
   });
 }
 
-// ---------------- WELCOME BONUS ----------------
+// ---------------- WATCH AD (ONLY TASK-BLOCK HERE) ----------------
+document.getElementById("watchAd").onclick = ()=>{
+  const ad = document.createElement("adsgram-task");
+
+  ad.setAttribute(
+    "data-block-id",
+    ADSGRAM_BLOCKS[Math.floor(Math.random()*ADSGRAM_BLOCKS.length)]
+  );
+
+  ad.addEventListener("reward", ()=>{
+    setTimeout(()=>{
+      points += 100;
+      update();
+    },30000);
+  });
+
+  document.getElementById("adsArea").innerHTML = "";
+  document.getElementById("adsArea").appendChild(ad);
+};
+
+// ---------------- WELCOME BONUS (NORMAL ADS ONLY) ----------------
 document.getElementById("welcomeBonus").onclick = ()=>{
 
-  showRandomAd(()=>{
+  const blockId = WELCOME_BLOCKS[Math.floor(Math.random()*WELCOME_BLOCKS.length)];
+  const ad = window.Adsgram.init({ blockId });
+
+  ad.show().then(()=>{
 
     const area = document.getElementById("welcomeArea");
     area.innerHTML = "";
@@ -209,28 +172,30 @@ document.getElementById("welcomeBonus").onclick = ()=>{
     claimBtn.onclick = ()=>{
       points += 1000;
       update();
-      tg.showAlert("🎉 You received 1000 points welcome bonus!");
+      tg.showAlert("🎉 Welcome bonus added!");
+      claimBtn.remove();
+    };
+
+    area.appendChild(claimBtn);
+
+  }).catch(()=>{
+
+    const area = document.getElementById("welcomeArea");
+    area.innerHTML = "";
+
+    const claimBtn = document.createElement("button");
+    claimBtn.className = "btn";
+    claimBtn.innerText = "Claim Welcome Bonus (1000 points)";
+
+    claimBtn.onclick = ()=>{
+      points += 1000;
+      update();
+      tg.showAlert("🎉 Welcome bonus added!");
       claimBtn.remove();
     };
 
     area.appendChild(claimBtn);
   });
-};
-
-// ---------------- WATCH AD ----------------
-document.getElementById("watchAd").onclick = ()=>{
-  const ad = document.createElement("adsgram-task");
-  ad.setAttribute("data-block-id","task-27929");
-
-  ad.addEventListener("reward", ()=>{
-    setTimeout(()=>{
-      points += 100;
-      update();
-    },30000);
-  });
-
-  document.getElementById("adsArea").innerHTML = "";
-  document.getElementById("adsArea").appendChild(ad);
 };
 
 // ---------------- RADIO ----------------
